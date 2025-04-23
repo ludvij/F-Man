@@ -1,7 +1,12 @@
 #ifndef FILE_MANAGER_MEMORYFS_HEADER
 #define FILE_MANAGER_MEMORYFS_HEADER
-#include "FileManager.hpp"
 #include "MemoryFile.hpp"
+#include <filesystem>
+#include <optional>
+#include <cstdint>
+
+#include "ludutils/lud_mem_stream.hpp"
+
 namespace Fman
 {
 namespace vfs
@@ -17,9 +22,19 @@ bool ReadFromZip(query_type path);
 bool ReadFromZip(uint8_t* data, size_t sz);
 bool ReadFromPath(query_type path);
 
-bool PushFolder(query_type path);
-bool PushFile(query_type path, std::span<uint8_t> data);
-// should we use the same function for files and folders
+// ideally I would have only a Push function with a default empty data
+// but, then I did not have a way to differenciate between empty files and folders
+bool PushDirectory(query_type path);
+bool PushFile(query_type path, Lud::BinaryRange auto&  data);
+bool PushFile(query_type path, Lud::BinaryRange auto&& data);
+
+
+/**
+ * @brief removes path from vfs
+ * @param path the path to be removed, the matched branch will be culled
+ *  so it deletes whole directory structures
+ * @return true if path was removed, false if path was not found
+ */
 bool Pop(query_type path);
 
 
@@ -36,7 +51,11 @@ bool Contains(query_type path);
 // should this work for files and folders
 std::optional<size_t> Size(query_type path);
 
-// should be same as popping root
+
+/**
+ * @brief deletes whole VFS
+ * @return always true
+ */
 bool Clear();
 
 template<typename T, typename Parser>
@@ -52,6 +71,7 @@ bool WriteToZip(query_type name);
 
 
 // some template specs
+
 
 template <typename T, typename Parser>
 std::optional<T> Fman::vfs::Parse(query_type path)

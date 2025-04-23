@@ -1,14 +1,9 @@
+#include "internal/pch.hpp"
+
 #include "FileManager.hpp"
-#include "internal/FileManager_internal.hpp"
 #include "Serializable.hpp"
 
 #include <ludutils/lud_assert.hpp>
-
-#include <algorithm>
-#include <cstring>
-#include <deque>
-#include <string>
-#include <string_view>
 
 namespace fs = std::filesystem;
 namespace ranges = std::ranges;

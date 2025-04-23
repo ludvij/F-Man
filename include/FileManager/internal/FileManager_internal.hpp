@@ -1,13 +1,14 @@
 #ifndef FILE_MANAGER_INTERNAL_HEADER
 #define FILE_MANAGER_INTERNAL_HEADER
 
+
 #include <deque>
 #include <filesystem>
 #include <fstream>
 #include <vector>
 #include <unordered_map>
 
-#include "MemoryFile.hpp"
+#include "../vfs/MemoryFile.hpp"
 
 namespace Fman::_detail_
 {
@@ -49,14 +50,23 @@ namespace Fman::vfs::_detail_ {
 class Vfs
 {
 public:
+	Vfs() = default;
 	Vfs(const Vfs& other)            = delete;
 	Vfs& operator=(const Vfs& other) = delete;
 
 	Vfs(Vfs&& other)            = delete;
 	Vfs& operator=(Vfs&& other) = delete;
-private:
-	std::unordered_map<std::string_view, Vfs> m_nodes;
-	File* m_data;
+
+	size_t Size() const;
+	void Clear();
+
+public:
+	// ways to store this
+	//	std::variant<vfs::Vfs, vfs::File>
+	//	vfs::File*
+	//	std::optional<vfs::File>
+	std::unordered_map<std::string, Vfs> nodes;
+	File file;
 };
 }
 
