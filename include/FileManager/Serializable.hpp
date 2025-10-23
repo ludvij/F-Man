@@ -13,23 +13,23 @@ namespace Fman
 
 
 
-template<typename T> void SerializeStatic(const T& t);
-template<typename T> void DeserializeStatic(const T& t);
+template<typename T> void SerializeStatic(std::ostream& strm, const T& t);
+template<typename T> void DeserializeStatic(std::istream& strm, const T& t);
 
-template<typename T> void SerializeArrayStoresStatic(const std::span<T> arr);
-template<typename T> void DeserializeArrayStoresStatic(std::span<T> arr);
+template<typename T> void SerializeArrayStoresStatic(std::ostream& strm, const std::span<T> arr);
+template<typename T> void DeserializeArrayStoresStatic(std::istream& strm, std::span<T> arr);
 
 
-void SerializeData(const char* data, size_t sz);
-void DeserializeData(char* data, size_t sz);
+void SerializeData(std::ostream& strm, const char* data, size_t sz);
+void DeserializeData(std::istream& strm, char* data, size_t sz);
 
 class ISerializable
 {
 public:
 	// filestream provided in case of operation requiring it
-	virtual void Serialize(std::fstream& fs) = 0;
+	virtual void Serialize(std::ostream& fs) = 0;
 	// filestream provided in case of operation requiring it
-	virtual void Deserialize(std::fstream& fs) = 0;
+	virtual void Deserialize(std::istream& fs) = 0;
 };
 
 
@@ -37,37 +37,40 @@ public:
 void Serialize(ISerializable* serial);
 void Deserialize(ISerializable* serial);
 
+void SerializeCompress(ISerializable* serial);
+void DeserializeDecompress(ISerializable* serial);
+
 void SetSerializeFilename(std::string_view name);
 
 
 template<typename T>
-void SerializeStatic(const T& t)
+void SerializeStatic(std::ostream& strm, const T& t)
 {
-	SerializeData(reinterpret_cast<const char*>( &t ), sizeof t);
+	SerializeData(strm, reinterpret_cast<const char*>( &t ), sizeof t);
 }
 
 template<typename T>
-void DeserializeStatic(T& t)
+void DeserializeStatic(std::istream& strm, T& t)
 {
-	DeserializeData(reinterpret_cast<char*>( &t ), sizeof t);
+	DeserializeData(strm, reinterpret_cast<char*>( &t ), sizeof t);
 }
 
 
 
 template<typename T>
-void SerializeArrayStoresStatic(const std::span<T> arr)
+void SerializeArrayStoresStatic(std::ostream& strm, const std::span<T> arr)
 {
 	for (const auto& elem : arr)
 	{
-		SerializeData(std::bit_cast<char*>( &elem ), sizeof elem);
+		SerializeData(strm, std::bit_cast<char*>( &elem ), sizeof elem);
 	}
 }
 template<typename T>
-void DeserializeArrayStoresStatic(std::span<T> arr)
+void DeserializeArrayStoresStatic(std::istream& strm, std::span<T> arr)
 {
 	for (auto& elem : arr)
 	{
-		DeserializeData(std::bit_cast<char*>( &elem ), sizeof elem);
+		DeserializeData(strm, std::bit_cast<char*>( &elem ), sizeof elem);
 	}
 }
 

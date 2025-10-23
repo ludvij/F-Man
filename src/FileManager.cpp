@@ -4,6 +4,9 @@
 #include "Serializable.hpp"
 
 #include <ludutils/lud_assert.hpp>
+#include <ludutils/lud_archive.hpp>
+
+#include "util/compression_utils.hpp"
 
 namespace fs = std::filesystem;
 namespace ranges = std::ranges;
@@ -224,7 +227,6 @@ void Fman::Serialize(ISerializable* serial)
 	if (PushFile(context.serialize_filename, mode::binary | mode::write))
 	{
 		serial->Serialize(context.current_file);
-
 		PopFile();
 	}
 }
@@ -234,9 +236,26 @@ void Fman::Deserialize(ISerializable* serial)
 	if (PushFile(context.serialize_filename, mode::binary | mode::read))
 	{
 		serial->Deserialize(context.current_file);
-
 		PopFile();
 	}
+}
+
+void Fman::SerializeCompress(ISerializable* serial)
+{
+	std::filesystem::path path = context.current_folder;
+	path /= context.serialize_filename;
+
+	Fman::CompressionOfstream comp_ofstream(path);
+	serial->Serialize(comp_ofstream);
+}
+
+void Fman::DeserializeDecompress(ISerializable* serial)
+{
+	std::filesystem::path path = context.current_folder;
+	path /= context.serialize_filename;
+
+	Fman::DecompressionIfstream comp_ifstream(path);
+	serial->Deserialize(comp_ifstream);
 }
 
 void Fman::SetSerializeFilename(std::string_view name)
@@ -252,18 +271,12 @@ void Fman::SetSerializeFilename(std::string_view name)
 
 }
 
-void Fman::SerializeData(const char* data, const size_t sz)
+void Fman::SerializeData(std::ostream& strm, const char* data, const size_t sz)
 {
-	auto& fs = context.current_file;
-	Lud::assert::that(fs.is_open(), "Must be called inside Fman::Serialize");
-
-	fs.write(data, sz);
+	strm.write(data, sz);
 }
 
-void Fman::DeserializeData(char* data, const size_t sz)
+void Fman::DeserializeData(std::istream& strm, char* data, const size_t sz)
 {
-	auto& fs = context.current_file;
-	Lud::assert::that(fs.is_open(), "Must be called inside Fman::Deserialize");
-
-	fs.read(data, sz);
+	strm.read(data, sz);
 }
