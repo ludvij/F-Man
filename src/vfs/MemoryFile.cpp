@@ -8,7 +8,7 @@ using namespace Fman;
 vfs::File& vfs::File::operator=(const File& other)
 {
 	this->m_data = other.m_data;
-	this->m_stream.Link(m_data.data(), m_data.size());
+	this->m_stream.Link(m_data);
 	this->m_name = other.m_name;
 
 	return *this;
@@ -17,7 +17,7 @@ vfs::File& vfs::File::operator=(const File& other)
 vfs::File& vfs::File::operator=(File&& other)
 {
 	this->m_data = std::move(other.m_data);
-	this->m_stream.Link(m_data.data(), m_data.size());
+	this->m_stream.Link(m_data);
 	this->m_name = std::move(other.m_name);
 
 	return *this;

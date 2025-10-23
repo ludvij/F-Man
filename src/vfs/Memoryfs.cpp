@@ -39,7 +39,8 @@ Vfs* internal_search(std::forward_iterator auto first, std::forward_iterator aut
 
 bool Fman::vfs::ReadFromZip(uint8_t *data, size_t sz)
 {
-	Lud::memory_istream<uint8_t> mem_stream(data, sz);
+	Lud::memory_istream mem_stream(std::span<uint8_t>(data, sz));
+
 	auto zip_dir = Lud::CreateZipDirectory(mem_stream);
 	for(const auto& zipped_file : zip_dir)
 	{

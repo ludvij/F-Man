@@ -61,7 +61,7 @@ void File::SetData(const Lud::BinaryRange auto &range)
 	m_data.reserve(range.size());
 	std::copy(range.begin(), range.end(), std::back_inserter(m_data));
 
-	m_stream.Link(m_data.data(), m_data.size());
+	m_stream.Link(m_data);
 	m_init = true;
 
 }
@@ -72,7 +72,7 @@ void File::SetData(Lud::BinaryRange auto& range)
 	m_data.reserve(range.size());
 	std::copy(range.begin(), range.end(), std::back_inserter(m_data));
 
-	m_stream.Link(m_data.data(), m_data.size());
+	m_stream.Link(m_data);
 	m_init = true;
 
 }
@@ -82,7 +82,7 @@ void File::SetData(Lud::BinaryRange auto&& range)
 	m_data.clear();
 	m_data.insert(m_data.end(), std::make_move_iterator(range.begin()), std::make_move_iterator(range.end()));
 
-	m_stream.Link(m_data.data(), m_data.size());
+	m_stream.Link(m_data);
 	m_init = true;
 }
 

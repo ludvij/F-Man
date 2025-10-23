@@ -5,7 +5,7 @@ project(Fman)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-option(FMAN_TESTS "Enable tests project" ON)
+option(FMAN_TESTS "Enable tests project" OFF)
 
 set(SOURCES
 	include/FileManager/Serializable.hpp
@@ -24,11 +24,6 @@ set(SOURCES
 )
 
 
-add_library(zlib STATIC IMPORTED)
-set_target_properties(zlib PROPERTIES
-	IMPORTED_LOCATION ${library_zlib}
-	INTERFACE_INCLUDE_DIRECTORIES ${include_dir_zlib}
-)
 
 
 add_library(${PROJECT_NAME} STATIC)
@@ -72,7 +67,7 @@ if (FMAN_TESTS)
 	FetchContent_Declare(
 		Catch2
 		GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-		GIT_TAG        v3.4.0
+		GIT_TAG        v3.11.0
 		EXCLUDE_FROM_ALL
 	)
 
@@ -96,7 +91,6 @@ if (FMAN_TESTS)
 		PRIVATE ludutils
 		PRIVATE zlib
 	)
-	catch_discover_tests(FMAN_TESTS)
 
 endif()
 
