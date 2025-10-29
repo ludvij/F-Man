@@ -4,6 +4,7 @@
 #include "Serializable.hpp"
 
 #include <ludutils/lud_assert.hpp>
+#include <ludutils/lud_archive.hpp>
 
 namespace fs = std::filesystem;
 namespace ranges = std::ranges;
@@ -237,6 +238,49 @@ void Fman::Deserialize(ISerializable* serial)
 
 		PopFile();
 	}
+}
+
+void Fman::SerializeCompress(ISerializable* serial)
+{
+	std::vector<uint8_t> pending_compression;
+	
+	Lud::vector_wrap_streambuf vecbuf(pending_compression, std::ios::out | std::ios::binary);
+	std::ostream vec_ostream(&vecbuf);
+
+	serial->Serialize(vec_ostream);
+
+	auto comp = Lud::Compress(pending_compression);
+
+
+	if (PushFile(context.serialize_filename, mode::binary | mode::write))
+	{
+		LUD_WRITE_BINARY_PTR(context.current_file, comp.data(), comp.size());
+
+		PopFile();
+	}
+}
+
+void Fman::DeserializeDecompress(ISerializable* serial)
+{
+	std::vector<uint8_t> m_raw_data;
+	if (PushFile(context.serialize_filename, mode::binary | mode::read))
+	{
+		context.current_file.seekg(0, std::ios::end);
+		const size_t sz = context.current_file.tellg();
+		context.current_file.seekg(0, std::ios::beg);
+
+		m_raw_data.resize(sz);
+
+		LUD_READ_BINARY_PTR(context.current_file, m_raw_data.data(), sz);
+		
+		PopFile();
+	}
+	auto decomp = Lud::Uncompress(m_raw_data);
+
+	Lud::vector_wrap_streambuf vecbuf(decomp, std::ios::in | std::ios::binary);
+	std::istream vec_istream(&vecbuf);
+
+	serial->Deserialize(vec_istream);
 }
 
 void Fman::SetSerializeFilename(std::string_view name)

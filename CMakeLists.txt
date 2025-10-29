@@ -73,10 +73,6 @@ if (FMAN_TESTS)
 
 	FetchContent_MakeAvailable(Catch2)
 
-	list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
-	include(CTest)
-	include(Catch)
-
 	set(fman_test_dir ${CMAKE_CURRENT_LIST_DIR}/tests)
 
 	add_executable(FMAN_TESTS)
@@ -91,6 +87,11 @@ if (FMAN_TESTS)
 		PRIVATE ludutils
 		PRIVATE zlib
 	)
+
+	list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+	include(CTest)
+	include(Catch)
+	catch_discover_tests(FMAN_TESTS)
 
 endif()
 

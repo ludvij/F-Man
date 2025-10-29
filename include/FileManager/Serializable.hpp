@@ -27,15 +27,18 @@ class ISerializable
 {
 public:
 	// filestream provided in case of operation requiring it
-	virtual void Serialize(std::fstream& fs) = 0;
+	virtual void Serialize(std::ostream& fs) = 0;
 	// filestream provided in case of operation requiring it
-	virtual void Deserialize(std::fstream& fs) = 0;
+	virtual void Deserialize(std::istream& fs) = 0;
 };
 
 
 // might not be const since change can be made while serialization, rare
 void Serialize(ISerializable* serial);
 void Deserialize(ISerializable* serial);
+
+void SerializeCompress(ISerializable* serial);
+void DeserializeDecompress(ISerializable* serial);
 
 void SetSerializeFilename(std::string_view name);
 
