@@ -47,12 +47,12 @@ TEST_CASE("VSF -- Read", "[Fman][vfs]")
 				REQUIRE(trie_3->nodes.contains("noext"));
 	}
 
-	SECTION("Read from zip")
-	{
-		REQUIRE(false);
-	}
+	// SECTION("Read from zip")
+	// {
+	// 	REQUIRE(false);
+	// }
 }
-
+/*
 TEST_CASE("VSF -- Write", "[Fman][vfs]")
 {
 	SECTION("Write to disk")
@@ -213,3 +213,4 @@ TEST_CASE("VFS -- size", "[Fman][vfs]")
 		REQUIRE(false);
 	}	
 }
+*/

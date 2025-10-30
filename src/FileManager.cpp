@@ -245,38 +245,17 @@ void Fman::SerializeCompress(ISerializable* serial)
 	std::filesystem::path path = context.current_folder;
 	path /= context.serialize_filename;
 
-	Fman::CompressionOfstream comp_oftream(path);
-	serial->Serialize(comp_oftream);
-
-	// if (PushFile(context.serialize_filename, mode::binary | mode::write))
-	// {
-	// 	Fman::CompressionOfstream comp_oftream(&context.current_file);
-	// 	serial->Serialize(comp_oftream);
-	// 	PopFile();
-	// }
+	Fman::CompressionOfstream comp_ofstream(path);
+	serial->Serialize(comp_ofstream);
 }
 
 void Fman::DeserializeDecompress(ISerializable* serial)
 {
-	std::vector<uint8_t> m_raw_data;
-	if (PushFile(context.serialize_filename, mode::binary | mode::read))
-	{
-		context.current_file.seekg(0, std::ios::end);
-		const size_t sz = context.current_file.tellg();
-		context.current_file.seekg(0, std::ios::beg);
+	std::filesystem::path path = context.current_folder;
+	path /= context.serialize_filename;
 
-		m_raw_data.resize(sz);
-
-		LUD_READ_BINARY_PTR(context.current_file, m_raw_data.data(), sz);
-		
-		PopFile();
-	}
-	auto decomp = Lud::Uncompress(m_raw_data);
-
-	Lud::vector_wrap_streambuf vecbuf(decomp, std::ios::in | std::ios::binary);
-	std::istream vec_istream(&vecbuf);
-
-	serial->Deserialize(vec_istream);
+	Fman::DecompressionIfstream comp_ifstream(path);
+	serial->Deserialize(comp_ifstream);
 }
 
 void Fman::SetSerializeFilename(std::string_view name)

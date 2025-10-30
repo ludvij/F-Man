@@ -85,7 +85,7 @@ constexpr void compression_buffer::compress_buffer(const size_t sz, const bool e
 		err = deflate(&m_z_stream, flush);
 		if (err < Z_OK)
 		{
-			deflateEnd(&m_z_stream);
+			(void)deflateEnd(&m_z_stream);
 			throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
 		}
 		const size_t have = CHUNK_SIZE - m_z_stream.avail_out;
@@ -94,18 +94,17 @@ constexpr void compression_buffer::compress_buffer(const size_t sz, const bool e
 
 	if (end)
 	{
-		deflateEnd(&m_z_stream);
+		(void)deflateEnd(&m_z_stream);
 		if (err != Z_STREAM_END)
 		{
 			throw std::runtime_error("ZLIB ERROR: Stream could not finish");
 		}
-		deflateEnd(&m_z_stream);
 	}
 
 }
 
 CompressionOfstream::CompressionOfstream(const std::filesystem::path& path)
-	: m_ostream(path)
+	: m_ostream(path, std::ios::binary)
 	, m_buffer(m_ostream)
 {
 	Base::rdbuf(&m_buffer);
@@ -114,4 +113,98 @@ CompressionOfstream::CompressionOfstream(const std::filesystem::path& path)
 
 
 
+
+decompression_buffer::decompression_buffer(std::istream &input_stream)
+	: m_input_stream(input_stream)
+{
+	m_z_stream.zalloc = Z_NULL;
+	m_z_stream.zfree  = Z_NULL;
+	m_z_stream.opaque = Z_NULL;
+
+	m_z_stream.avail_in = 0;
+	m_z_stream.next_out = Z_NULL;
+
+	if (auto err = inflateInit(&m_z_stream); err != Z_OK)
+	{
+		throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
+	}
+}
+
+decompression_buffer::IntT decompression_buffer::underflow()
+{
+	decompress_buffer();
+	return TraitsT::not_eof(*Base::gptr());
+}
+
+constexpr void decompression_buffer::decompress_buffer(bool end)
+{
+	if (m_finished)
+	{
+		throw std::runtime_error("zlib stream fiished but read was called again");
+	}
+	int err;
+
+	uint8_t in[CHUNK_SIZE]{};
+	LUD_READ_BINARY(m_input_stream, in);
+	if (m_input_stream.good())
+	{
+		m_finished = true;
+		(void)inflateEnd(&m_z_stream);
+		throw std::runtime_error("error while reading compression stream");
+	}
+
+	m_z_stream.avail_in = m_input_stream.gcount();
+	m_z_stream.next_in = in;
+	if (m_z_stream.avail_in == 0)
+	{
+		m_finished = true;
+		(void)inflateEnd(&m_z_stream);
+	}
+
+	do {
+		m_z_stream.avail_out = CHUNK_SIZE;
+		m_z_stream.next_out = m_buffer.data();
+		err = inflate(&m_z_stream, Z_NO_FLUSH);
+		if (err < Z_OK)
+		{
+			m_finished = true;
+			(void)inflateEnd(&m_z_stream);
+
+			switch (err)
+			{
+			case Z_STREAM_ERROR:
+				[[fallthrough]];
+			case Z_NEED_DICT:
+				[[fallthrough]];
+			case Z_DATA_ERROR: 
+				[[fallthrough]];
+			case Z_MEM_ERROR:
+				throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
+			}
+		}
+
+		const size_t have = CHUNK_SIZE - m_z_stream.avail_out;
+		set_get_area(have);
+	} while(m_z_stream.avail_out == 0);
+
+	if (err == Z_STREAM_END)
+	{
+		m_finished = true;
+		(void)inflateEnd(&m_z_stream);
+	}
+}
+
+constexpr void decompression_buffer::set_get_area(const size_t sz) 
+{
+	char* cs = std::bit_cast<char*>(m_buffer.data());
+	Base::setg(cs, cs, cs + sz);
+}
+
+
+DecompressionIfstream::DecompressionIfstream(const std::filesystem::path &path)
+	: m_istream(path, std::ios::binary)
+	, m_buffer(m_istream)
+{
+	rdbuf(&m_buffer);
+}
 }
