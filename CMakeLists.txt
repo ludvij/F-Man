@@ -12,7 +12,6 @@ set(SOURCES
 	include/FileManager/FileManager.hpp
 
 	include/FileManager/internal/FileManager_internal.hpp
-	include/FileManager/internal/Definitions.hpp
 	include/FileManager/internal/pch.hpp
 
 

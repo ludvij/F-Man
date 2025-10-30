@@ -1,10 +1,10 @@
 #ifndef FILE_MANAGER_COMPRESSION_UTIL_HEADER
 #define FILE_MANAGER_COMPRESSION_UTIL_HEADER
 
-#include <iostream>
-#include <streambuf>
 #include <array>
 #include <filesystem>
+#include <iostream>
+#include <streambuf>
 
 #include <zlib/zlib.h>
 
@@ -36,9 +36,9 @@ protected:
 	virtual int sync() override;
 
 private:
-	constexpr void compress_buffer(size_t sz, bool end = false);
+	void compress_buffer(size_t sz, bool end = false);
 
-	constexpr void set_put_area();
+	void set_put_area();
 
 private:
 	std::array<uint8_t, CHUNK_SIZE> m_buffer;
@@ -68,14 +68,14 @@ public:
 	decompression_buffer(std::istream& input_stream);
 	// ~decompression_buffer();
 
-	
+
 protected:
 	virtual IntT underflow() override;
 
 private:
-	constexpr void decompress_buffer(bool end = false);
+	void decompress_buffer(bool end = false);
 
-	constexpr void set_get_area(size_t sz);
+	void set_get_area(size_t sz);
 
 private:
 	std::array<uint8_t, CHUNK_SIZE> m_buffer;
@@ -84,7 +84,7 @@ private:
 
 	z_stream m_z_stream;
 
-	bool m_finished{false};
+	bool m_finished{ false };
 };
 
 

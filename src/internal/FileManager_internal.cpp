@@ -4,7 +4,6 @@
 
 #if defined(FILEMANAGER_PLATFORM_WINDOWS)
 #include <ShlObj.h>
-#include "FileManager_internal.hpp"
 Fman::_detail_::Context::Context()
 {
 	// I need to clan this
@@ -52,22 +51,4 @@ Fman::_detail_::Context::~Context()
 	{
 		delete[] alloc;
 	}
-}
-// TODO: make this not recursive
-size_t Fman::vfs::_detail_::Vfs::Size() const
-{
-	size_t self_size = nodes.size();
-	size_t nodes_size = 0;
-	for(const auto& [path, node] : nodes)
-	{
-		nodes_size += node.Size();
-	}
-
-	return self_size + nodes_size;
-}
-
-void Fman::vfs::_detail_::Vfs::Clear()
-{
-	nodes.clear();
-	file = File();
 }

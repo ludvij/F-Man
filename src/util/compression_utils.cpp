@@ -8,7 +8,7 @@
 namespace Fman
 {
 
-compression_buffer::compression_buffer(std::ostream &output_stream)
+compression_buffer::compression_buffer(std::ostream& output_stream)
 	: m_output_stream(output_stream)
 {
 	set_put_area();
@@ -41,7 +41,7 @@ compression_buffer::IntT compression_buffer::overflow(IntT ch)
 	// we set Base::eptr to one before the end of the buffer in order
 	// to accomodate ch, this way we can follow the constraints
 	// defined by std::streambuf::overflow
-	m_buffer[m_buffer.size() - 1] = static_cast<uint8_t>(ch);
+	m_buffer[m_buffer.size() - 1] = static_cast<uint8_t>( ch );
 
 	compress_buffer(CHUNK_SIZE);
 	// reset put area ptrs
@@ -58,16 +58,16 @@ int compression_buffer::sync()
 }
 
 
-constexpr void compression_buffer::set_put_area()
+void compression_buffer::set_put_area()
 {
-	char* cs = std::bit_cast<char*>(m_buffer.data());
+	char* cs = std::bit_cast<char*>( m_buffer.data() );
 	// whacky hack in order to accomodate extra ch in overflow
 	Base::setp(cs, cs + m_buffer.size() - 1);
 }
 
 
 
-constexpr void compression_buffer::compress_buffer(const size_t sz, const bool end)
+void compression_buffer::compress_buffer(const size_t sz, const bool end)
 {
 	int err;
 	uint8_t out[CHUNK_SIZE];
@@ -77,7 +77,8 @@ constexpr void compression_buffer::compress_buffer(const size_t sz, const bool e
 	m_z_stream.avail_in = sz;
 	m_z_stream.next_in  = m_buffer.data();
 
-	do {
+	do
+	{
 
 		m_z_stream.avail_out = CHUNK_SIZE;
 		m_z_stream.next_out = out;
@@ -106,15 +107,15 @@ constexpr void compression_buffer::compress_buffer(const size_t sz, const bool e
 CompressionOfstream::CompressionOfstream(const std::filesystem::path& path)
 	: m_ostream(path, std::ios::binary)
 	, m_buffer(m_ostream)
+	, Base(&m_buffer)
 {
-	Base::rdbuf(&m_buffer);
 }
 
 
 
 
 
-decompression_buffer::decompression_buffer(std::istream &input_stream)
+decompression_buffer::decompression_buffer(std::istream& input_stream)
 	: m_input_stream(input_stream)
 {
 	m_z_stream.zalloc = Z_NULL;
@@ -136,7 +137,7 @@ decompression_buffer::IntT decompression_buffer::underflow()
 	return TraitsT::not_eof(*Base::gptr());
 }
 
-constexpr void decompression_buffer::decompress_buffer(bool end)
+void decompression_buffer::decompress_buffer(bool end)
 {
 	if (m_finished)
 	{
@@ -145,7 +146,7 @@ constexpr void decompression_buffer::decompress_buffer(bool end)
 	int err;
 
 	uint8_t in[CHUNK_SIZE]{};
-	LUD_READ_BINARY(m_input_stream, in);
+	m_input_stream.read(std::bit_cast<char*>( &in ), CHUNK_SIZE);
 	if (m_input_stream.good())
 	{
 		m_finished = true;
@@ -161,7 +162,8 @@ constexpr void decompression_buffer::decompress_buffer(bool end)
 		(void)inflateEnd(&m_z_stream);
 	}
 
-	do {
+	do
+	{
 		m_z_stream.avail_out = CHUNK_SIZE;
 		m_z_stream.next_out = m_buffer.data();
 		err = inflate(&m_z_stream, Z_NO_FLUSH);
@@ -176,7 +178,7 @@ constexpr void decompression_buffer::decompress_buffer(bool end)
 				[[fallthrough]];
 			case Z_NEED_DICT:
 				[[fallthrough]];
-			case Z_DATA_ERROR: 
+			case Z_DATA_ERROR:
 				[[fallthrough]];
 			case Z_MEM_ERROR:
 				throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
@@ -185,7 +187,7 @@ constexpr void decompression_buffer::decompress_buffer(bool end)
 
 		const size_t have = CHUNK_SIZE - m_z_stream.avail_out;
 		set_get_area(have);
-	} while(m_z_stream.avail_out == 0);
+	} while (m_z_stream.avail_out == 0);
 
 	if (err == Z_STREAM_END)
 	{
@@ -194,17 +196,17 @@ constexpr void decompression_buffer::decompress_buffer(bool end)
 	}
 }
 
-constexpr void decompression_buffer::set_get_area(const size_t sz) 
+void decompression_buffer::set_get_area(const size_t sz)
 {
-	char* cs = std::bit_cast<char*>(m_buffer.data());
+	char* cs = std::bit_cast<char*>( m_buffer.data() );
 	Base::setg(cs, cs, cs + sz);
 }
 
 
-DecompressionIfstream::DecompressionIfstream(const std::filesystem::path &path)
+DecompressionIfstream::DecompressionIfstream(const std::filesystem::path& path)
 	: m_istream(path, std::ios::binary)
 	, m_buffer(m_istream)
+	, Base(&m_buffer)
 {
-	rdbuf(&m_buffer);
 }
 }
