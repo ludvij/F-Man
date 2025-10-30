@@ -105,10 +105,11 @@ void compression_buffer::compress_buffer(const size_t sz, const bool end)
 }
 
 CompressionOfstream::CompressionOfstream(const std::filesystem::path& path)
-	: m_ostream(path, std::ios::binary)
+	: Base(nullptr)
+	, m_ostream(path, std::ios::binary)
 	, m_buffer(m_ostream)
-	, Base(&m_buffer)
 {
+	Base::rdbuf(&m_buffer);
 }
 
 
@@ -204,9 +205,10 @@ void decompression_buffer::set_get_area(const size_t sz)
 
 
 DecompressionIfstream::DecompressionIfstream(const std::filesystem::path& path)
-	: m_istream(path, std::ios::binary)
+	: Base(nullptr)
+	, m_istream(path, std::ios::binary)
 	, m_buffer(m_istream)
-	, Base(&m_buffer)
 {
+	Base::rdbuf(&m_buffer);
 }
 }
