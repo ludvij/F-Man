@@ -6,6 +6,8 @@
 #include <ludutils/lud_assert.hpp>
 #include <ludutils/lud_archive.hpp>
 
+#include "util/compression_utils.hpp"
+
 namespace fs = std::filesystem;
 namespace ranges = std::ranges;
 
@@ -225,7 +227,6 @@ void Fman::Serialize(ISerializable* serial)
 	if (PushFile(context.serialize_filename, mode::binary | mode::write))
 	{
 		serial->Serialize(context.current_file);
-
 		PopFile();
 	}
 }
@@ -235,29 +236,24 @@ void Fman::Deserialize(ISerializable* serial)
 	if (PushFile(context.serialize_filename, mode::binary | mode::read))
 	{
 		serial->Deserialize(context.current_file);
-
 		PopFile();
 	}
 }
 
 void Fman::SerializeCompress(ISerializable* serial)
 {
-	std::vector<uint8_t> pending_compression;
-	
-	Lud::vector_wrap_streambuf vecbuf(pending_compression, std::ios::out | std::ios::binary);
-	std::ostream vec_ostream(&vecbuf);
+	std::filesystem::path path = context.current_folder;
+	path /= context.serialize_filename;
 
-	serial->Serialize(vec_ostream);
+	Fman::CompressionOfstream comp_oftream(path);
+	serial->Serialize(comp_oftream);
 
-	auto comp = Lud::Compress(pending_compression);
-
-
-	if (PushFile(context.serialize_filename, mode::binary | mode::write))
-	{
-		LUD_WRITE_BINARY_PTR(context.current_file, comp.data(), comp.size());
-
-		PopFile();
-	}
+	// if (PushFile(context.serialize_filename, mode::binary | mode::write))
+	// {
+	// 	Fman::CompressionOfstream comp_oftream(&context.current_file);
+	// 	serial->Serialize(comp_oftream);
+	// 	PopFile();
+	// }
 }
 
 void Fman::DeserializeDecompress(ISerializable* serial)
@@ -296,18 +292,12 @@ void Fman::SetSerializeFilename(std::string_view name)
 
 }
 
-void Fman::SerializeData(const char* data, const size_t sz)
+void Fman::SerializeData(std::ostream& strm, const char* data, const size_t sz)
 {
-	auto& fs = context.current_file;
-	Lud::assert::that(fs.is_open(), "Must be called inside Fman::Serialize");
-
-	fs.write(data, sz);
+	strm.write(data, sz);
 }
 
-void Fman::DeserializeData(char* data, const size_t sz)
+void Fman::DeserializeData(std::istream& strm, char* data, const size_t sz)
 {
-	auto& fs = context.current_file;
-	Lud::assert::that(fs.is_open(), "Must be called inside Fman::Deserialize");
-
-	fs.read(data, sz);
+	strm.read(data, sz);
 }

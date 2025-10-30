@@ -10,16 +10,24 @@ option(FMAN_TESTS "Enable tests project" OFF)
 set(SOURCES
 	include/FileManager/Serializable.hpp
 	include/FileManager/FileManager.hpp
+
 	include/FileManager/internal/FileManager_internal.hpp
 	include/FileManager/internal/Definitions.hpp
 	include/FileManager/internal/pch.hpp
+
 	include/FileManager/vfs/Memoryfs.hpp
 	include/FileManager/vfs/MemoryFile.hpp
-	
+
+	include/FileManager/util/compression_utils.hpp
+
 	src/FileManager.cpp
+
 	src/internal/FileManager_internal.cpp
+
 	src/vfs/Memoryfs.cpp
 	src/vfs/MemoryFile.cpp
+
+	src/util/compression_utils.cpp
 
 )
 
@@ -78,6 +86,7 @@ if (FMAN_TESTS)
 	add_executable(FMAN_TESTS)
 	target_sources(FMAN_TESTS PRIVATE
 		${fman_test_dir}/test_vfs.cpp
+		${fman_test_dir}/test_serialization.cpp
 		${fman_test_dir}/test.cpp
 	)
 
