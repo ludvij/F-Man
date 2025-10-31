@@ -132,6 +132,14 @@ decompression_buffer::decompression_buffer(std::istream& input_stream)
 	}
 }
 
+decompression_buffer::~decompression_buffer()
+{
+	if (!m_finished)
+	{
+		(void)inflateEnd(&m_z_stream);
+	}
+}
+
 decompression_buffer::IntT decompression_buffer::underflow()
 {
 	decompress_buffer();
@@ -148,7 +156,8 @@ void decompression_buffer::decompress_buffer(bool end)
 
 	uint8_t in[CHUNK_SIZE]{};
 	m_input_stream.read(std::bit_cast<char*>( &in ), CHUNK_SIZE);
-	if (m_input_stream.good())
+
+	if (m_input_stream.bad())
 	{
 		m_finished = true;
 		(void)inflateEnd(&m_z_stream);

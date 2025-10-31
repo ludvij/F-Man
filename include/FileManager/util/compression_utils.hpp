@@ -10,10 +10,11 @@
 
 namespace Fman
 {
+constexpr static size_t CHUNK_SIZE = 16384;
+
 class compression_buffer : public std::streambuf
 {
 public:
-	constexpr static size_t CHUNK_SIZE = 16384;
 
 	using Base    = std::streambuf;
 	using IntT    = Base::int_type;
@@ -51,8 +52,6 @@ private:
 class decompression_buffer : public std::streambuf
 {
 public:
-	constexpr static size_t CHUNK_SIZE = 16384;
-
 	using Base    = std::streambuf;
 	using IntT    = Base::int_type;
 	using TraitsT = Base::traits_type;
@@ -66,7 +65,7 @@ public:
 	 * @param input_stream stream where the decompressed data will be read from
 	 */
 	decompression_buffer(std::istream& input_stream);
-	// ~decompression_buffer();
+	~decompression_buffer();
 
 
 protected:

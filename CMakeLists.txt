@@ -10,14 +10,15 @@ option(FMAN_TESTS "Enable tests project" OFF)
 set(SOURCES
 	include/FileManager/Serializable.hpp
 	include/FileManager/FileManager.hpp
-
+	
 	include/FileManager/internal/FileManager_internal.hpp
 	include/FileManager/internal/pch.hpp
-
-
+	
+	
 	include/FileManager/util/compression_utils.hpp
-
+	
 	src/FileManager.cpp
+	src/Serializable.cpp
 
 	src/internal/FileManager_internal.cpp
 

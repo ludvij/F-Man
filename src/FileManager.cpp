@@ -247,6 +247,7 @@ void Fman::SerializeCompress(ISerializable* serial)
 
 	Fman::CompressionOfstream comp_ofstream(path);
 	serial->Serialize(comp_ofstream);
+
 }
 
 void Fman::DeserializeDecompress(ISerializable* serial)
@@ -256,9 +257,10 @@ void Fman::DeserializeDecompress(ISerializable* serial)
 
 	Fman::DecompressionIfstream comp_ifstream(path);
 	serial->Deserialize(comp_ifstream);
+
 }
 
-void Fman::SetSerializeFilename(std::string_view name)
+void Fman::SetSerializeFilename(const std::string_view name)
 {
 	if (!name.empty())
 	{
@@ -271,12 +273,3 @@ void Fman::SetSerializeFilename(std::string_view name)
 
 }
 
-void Fman::SerializeData(std::ostream& strm, const char* data, const size_t sz)
-{
-	strm.write(data, sz);
-}
-
-void Fman::DeserializeData(std::istream& strm, char* data, const size_t sz)
-{
-	strm.read(data, sz);
-}
