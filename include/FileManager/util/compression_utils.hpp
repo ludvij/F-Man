@@ -36,10 +36,14 @@ protected:
 	virtual IntT overflow(IntT ch = TraitsT::eof()) override;
 	virtual int sync() override;
 
+	virtual std::streamsize xsputn(const CharT* s, std::streamsize count) override;
+
 private:
 	void compress_buffer(size_t sz, bool end = false);
 
 	void set_put_area();
+
+	std::streamsize get_available_put_area() const;
 
 private:
 	std::array<uint8_t, CHUNK_SIZE> m_buffer;
@@ -71,13 +75,19 @@ public:
 protected:
 	virtual IntT underflow() override;
 
+	virtual std::streamsize xsgetn(CharT* s, std::streamsize count) override;
+
+	virtual std::streamsize showmanyc() override;
+
 private:
 	void decompress_buffer(bool end = false);
 
 	void set_get_area(size_t sz);
 
 private:
-	std::array<uint8_t, CHUNK_SIZE> m_buffer;
+	std::array<uint8_t, CHUNK_SIZE> m_out_buffer;
+
+	std::array<uint8_t, CHUNK_SIZE> m_in_bufer;
 
 	std::istream& m_input_stream;
 
@@ -88,25 +98,23 @@ private:
 
 
 
-class CompressionOfstream : public std::ostream
+class CompressionOstream : public std::ostream
 {
 public:
 	using Base = std::ostream;
 public:
-	CompressionOfstream(const std::filesystem::path& path);
+	CompressionOstream(std::ostream& ostream);
 private:
-	std::ofstream m_ostream;
 	Fman::compression_buffer m_buffer;
 };
 
-class DecompressionIfstream : public std::istream
+class DecompressionIstream : public std::istream
 {
 public:
 	using Base = std::istream;
 public:
-	DecompressionIfstream(const std::filesystem::path& path);
+	DecompressionIstream(std::istream& istream);
 private:
-	std::ifstream m_istream;
 	Fman::decompression_buffer m_buffer;
 };
 }

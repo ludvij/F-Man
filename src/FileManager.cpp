@@ -242,21 +242,23 @@ void Fman::Deserialize(ISerializable* serial)
 
 void Fman::SerializeCompress(ISerializable* serial)
 {
-	std::filesystem::path path = context.current_folder;
-	path /= context.serialize_filename;
-
-	Fman::CompressionOfstream comp_ofstream(path);
-	serial->Serialize(comp_ofstream);
+	if (PushFile(context.serialize_filename, mode::binary | mode::write))
+	{
+		Fman::CompressionOstream deflate_ostream(context.current_file);
+		serial->Serialize(deflate_ostream);
+	}
+	PopFile();
 
 }
 
 void Fman::DeserializeDecompress(ISerializable* serial)
 {
-	std::filesystem::path path = context.current_folder;
-	path /= context.serialize_filename;
-
-	Fman::DecompressionIfstream comp_ifstream(path);
-	serial->Deserialize(comp_ifstream);
+	if (PushFile(context.serialize_filename, mode::binary | mode::read))
+	{
+		Fman::DecompressionIstream inflate_istream(context.current_file);
+		serial->Deserialize(inflate_istream);
+	}
+	PopFile();
 
 }
 

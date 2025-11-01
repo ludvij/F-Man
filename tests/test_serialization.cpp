@@ -43,26 +43,26 @@ struct SimpleSerialization : public Fman::ISerializable
 struct BigSerializable : public Fman::ISerializable
 {
 	std::string begin{"BEGIN"};
-	std::vector<uint8_t> test;
+	std::vector<uint8_t> block_1;
+	std::vector<uint8_t> block_2;
+	std::vector<uint8_t> block_3;
 	std::string end{"END"};
-
-	bool operator==(const BigSerializable& rhs) const 
-	{
-		return test == rhs.test;
-	}
-
 
 	virtual void Serialize(std::ostream& stream) override
 	{
 		Fman::SerializeString(stream, begin);
-		Fman::SerializeDynamicRangeStoresStatic<uint8_t>(stream, test);
+		Fman::SerializeContiguousRange(stream, block_1);
+		Fman::SerializeContiguousRange(stream, block_2);
+		Fman::SerializeContiguousRange(stream, block_3);
 		Fman::SerializeString(stream, end);
 	}
 
 	virtual void Deserialize(std::istream& stream) override
 	{
 		Fman::DeserializeString(stream, begin);
-		Fman::DeserializeDynamicRangeStoresStatic<uint8_t>(stream, test);
+		Fman::DeserializeContiguousRange(stream, block_1);
+		Fman::DeserializeContiguousRange(stream, block_2);
+		Fman::DeserializeContiguousRange(stream, block_3);
 		Fman::DeserializeString(stream, end);
 	}
 };
@@ -70,11 +70,6 @@ struct BigSerializable : public Fman::ISerializable
 struct BiggerThanBlockSize : public Fman::ISerializable
 {
 	std::array<uint8_t, Fman::CHUNK_SIZE * 4> test;
-
-	bool operator==(const BiggerThanBlockSize& rhs) const 
-	{
-		return test == rhs.test;
-	}
 
 	virtual void Serialize(std::ostream& stream) override
 	{
@@ -146,7 +141,7 @@ TEST_CASE("Serialization -- Simple", "[Fman][serial]")
 	}
 	Fman::PopFolder();
 }
-	
+
 TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
 {
 	Fman::SetRootToKnownPath("PWD");
@@ -155,8 +150,18 @@ TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
 	std::mt19937 mt(2051920);
 	std::uniform_int_distribution<uint8_t> dist;
 	BigSerializable beeg;
-	beeg.test.resize(16384 * 128);
-	for(auto& elem : beeg.test)
+	beeg.block_1.resize(Fman::CHUNK_SIZE);
+	beeg.block_2.resize(Fman::CHUNK_SIZE);
+	beeg.block_3.resize(Fman::CHUNK_SIZE);
+	for(auto& elem : beeg.block_1)
+	{
+		elem = dist(mt);
+	}
+	for(auto& elem : beeg.block_2)
+	{
+		elem = dist(mt);
+	}
+	for(auto& elem : beeg.block_3)
 	{
 		elem = dist(mt);
 	}
@@ -168,12 +173,20 @@ TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
 
 
 		Fman::Serialize(&beeg);
-		beeg.test.clear();
+		
+		beeg.block_1.clear();
+		beeg.block_2.clear();
+		beeg.block_3.clear();
 
-		REQUIRE(beeg != expected);
+		REQUIRE(beeg.block_1 != expected.block_1);
+		REQUIRE(beeg.block_2 != expected.block_2);
+		REQUIRE(beeg.block_3 != expected.block_3);
+
 		Fman::Deserialize(&beeg);
 
-		REQUIRE(beeg == expected);
+		REQUIRE(beeg.block_1 == expected.block_1);
+		REQUIRE(beeg.block_2 == expected.block_2);
+		REQUIRE(beeg.block_3 == expected.block_3);
 	}
 
 	SECTION("Serialize compress multiple blocks")
@@ -181,14 +194,25 @@ TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
 		Fman::SetSerializeFilename("compressed_complex");
 
 		Fman::SerializeCompress(&beeg);
-		beeg.test.clear();
+		
+		beeg.block_1.clear();
+		beeg.block_2.clear();
+		beeg.block_3.clear();
 
-		REQUIRE(beeg != expected);
+		REQUIRE(beeg.block_1 != expected.block_1);
+		REQUIRE(beeg.block_2 != expected.block_2);
+		REQUIRE(beeg.block_3 != expected.block_3);
+
 		Fman::DeserializeDecompress(&beeg);
 
-		REQUIRE(beeg == expected);
+		REQUIRE(beeg.block_1 == expected.block_1);
+		REQUIRE(beeg.block_2 == expected.block_2);
+		REQUIRE(beeg.block_3 == expected.block_3);
 	}
-	beeg.test.clear();
+	beeg.block_1.clear();
+	beeg.block_2.clear();
+	beeg.block_3.clear();
+
 	Fman::PopFolder();
 }
 
@@ -214,11 +238,11 @@ TEST_CASE("Serialization - Bigger than block size", "[Fman][serial]")
 
 		std::fill_n(test.test.begin(), test.test.size(), 0);
 
-		REQUIRE(expected != test);
+		REQUIRE(expected.test != test.test);
 
 		Fman::DeserializeDecompress(&test);
 
-		REQUIRE(expected == test);
+		REQUIRE(expected.test == test.test);
 
 	}
 	Fman::PopFolder();
