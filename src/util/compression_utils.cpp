@@ -44,21 +44,21 @@ compression_buffer::IntT compression_buffer::overflow(IntT ch)
 std::streamsize Fman::compression_buffer::xsputn(const CharT *s, std::streamsize count)
 {
 	std::streamsize written = 0;
-	std::println("[WRITE]: Sent: {} available: {}", count, get_available_put_area());
+	//std::println("[WRITE]: Sent: {} available: {}", count, get_available_put_area());
 	while (written < count)
 	{
 		if (get_available_put_area() == 0)
 		{
-			std::println("[WRITE]:   Called overflow");
+			//std::println("[WRITE]:   Called overflow");
 			overflow();
-			std::println("[WRITE]:   Buffer size: {}", get_available_put_area());
+			//std::println("[WRITE]:   Buffer size: {}", get_available_put_area());
 		}
 		const auto avail = get_available_put_area();
 		const size_t to_copy = avail < (count - written) ? avail : (count - written);
 		TraitsT::copy(Base::pptr(), s + written, to_copy);
 		written += to_copy;
 		Base::pbump(to_copy);
-		std::println("[WRITE]:   Wrote: {} [{}/{}]", to_copy, written, count);
+		//std::println("[WRITE]:   Wrote: {} [{}/{}]", to_copy, written, count);
 	}
 	return written;
 }
@@ -169,21 +169,21 @@ decompression_buffer::IntT decompression_buffer::underflow()
 std::streamsize decompression_buffer::xsgetn(CharT *s, std::streamsize count)
 {
 	std::streamsize read = 0;
-	std::println("[ READ]: Requested: {} available: {}", count, showmanyc());
+	//std::println("[ READ]: Requested: {} available: {}", count, showmanyc());
 	while(read < count)
 	{
 		if (showmanyc() == 0)
 		{
-			std::println("[ READ]:   Called underflow");
+			//std::println("[ READ]:   Called underflow");
 			underflow();
-			std::println("[ READ]:   Buffer size: {}", showmanyc());
+			//std::println("[ READ]:   Buffer size: {}", showmanyc());
 		}
 		const auto avail = showmanyc();
 		const size_t to_copy = avail < (count - read) ? avail : ( count - read);
 		TraitsT::copy(s + read, Base::gptr(), to_copy);
 		read += to_copy;
 		Base::gbump(to_copy);
-		std::println("[ READ]:   Read: {} [{}/{}]", to_copy, read, count);
+		//std::println("[ READ]:   Read: {} [{}/{}]", to_copy, read, count);
 	}
 
 	return read;
