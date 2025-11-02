@@ -8,7 +8,6 @@
 #include <vector>
 #include <unordered_map>
 
-#include "../vfs/MemoryFile.hpp"
 
 namespace Fman::_detail_
 {
@@ -45,29 +44,4 @@ public:
 
 
 }
-
-namespace Fman::vfs::_detail_ {
-class Vfs
-{
-public:
-	Vfs() = default;
-	Vfs(const Vfs& other)            = delete;
-	Vfs& operator=(const Vfs& other) = delete;
-
-	Vfs(Vfs&& other)            = delete;
-	Vfs& operator=(Vfs&& other) = delete;
-
-	size_t Size() const;
-	void Clear();
-
-public:
-	// ways to store this
-	//	std::variant<vfs::Vfs, vfs::File>
-	//	vfs::File*
-	//	std::optional<vfs::File>
-	std::unordered_map<std::string, Vfs> nodes;
-	File file;
-};
-}
-
 #endif

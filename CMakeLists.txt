@@ -10,28 +10,45 @@ option(FMAN_TESTS "Enable tests project" OFF)
 set(SOURCES
 	include/FileManager/Serializable.hpp
 	include/FileManager/FileManager.hpp
-
+	
 	include/FileManager/internal/FileManager_internal.hpp
-	include/FileManager/internal/Definitions.hpp
 	include/FileManager/internal/pch.hpp
-
-	include/FileManager/vfs/Memoryfs.hpp
-	include/FileManager/vfs/MemoryFile.hpp
-
-	include/FileManager/util/compression_utils.hpp
-
+	
+	
+	include/FileManager/util/compression_streams.hpp
+	
 	src/FileManager.cpp
+	src/Serializable.cpp
 
 	src/internal/FileManager_internal.cpp
 
-	src/vfs/Memoryfs.cpp
-	src/vfs/MemoryFile.cpp
+	src/util/compression_streams.cpp
 
 	src/util/compression_utils.cpp
 
 )
 
 
+
+SET(ZLIB_USE_STATIC_LIBS ON)
+SET(ZLIB_BUILD_EXAMPLES OFF)
+
+
+SET(ZLIB_COMPAT ON)
+SET(ZLIB_ENABLE_TESTS OFF)
+SET(WITH_GTEST OFF)
+
+include(FetchContent)
+FetchContent_Declare(
+	zlib_ng
+	GIT_REPOSITORY https://github.com/zlib-ng/zlib-ng.git
+	GIT_TAG        2.2.5
+	EXCLUDE_FROM_ALL
+)
+
+add_compile_options(-Wno-type-limits)
+FetchContent_MakeAvailable(zlib_ng)
+add_compile_options(-Wtype-limits)
 
 
 add_library(${PROJECT_NAME} STATIC)
@@ -50,7 +67,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} 
 	PRIVATE ludutils
-	PRIVATE zlib
+	PRIVATE zlibstatic
 )
 
 if(generator_config MATCHES "DEBUG")
@@ -70,7 +87,6 @@ endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE CMAKE_EXPORT_COMPILE_COMMANDS=1)
 
 if (FMAN_TESTS)
-	include(FetchContent)
 
 	FetchContent_Declare(
 		Catch2
@@ -85,16 +101,14 @@ if (FMAN_TESTS)
 
 	add_executable(FMAN_TESTS)
 	target_sources(FMAN_TESTS PRIVATE
-		${fman_test_dir}/test_vfs.cpp
 		${fman_test_dir}/test_serialization.cpp
-		${fman_test_dir}/test.cpp
 	)
 
 	target_link_libraries(FMAN_TESTS
 		PRIVATE Fman
 		PRIVATE Catch2::Catch2WithMain
 		PRIVATE ludutils
-		PRIVATE zlib
+		PRIVATE zlibstatic
 	)
 
 	list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)

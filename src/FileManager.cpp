@@ -4,9 +4,8 @@
 #include "Serializable.hpp"
 
 #include <ludutils/lud_assert.hpp>
-#include <ludutils/lud_archive.hpp>
 
-#include "util/compression_utils.hpp"
+#include "util/compression_streams.hpp"
 
 namespace fs = std::filesystem;
 namespace ranges = std::ranges;
@@ -242,23 +241,27 @@ void Fman::Deserialize(ISerializable* serial)
 
 void Fman::SerializeCompress(ISerializable* serial)
 {
-	std::filesystem::path path = context.current_folder;
-	path /= context.serialize_filename;
+	if (PushFile(context.serialize_filename, mode::binary | mode::write))
+	{
+		Fman::CompressionOstream deflate_ostream(context.current_file);
+		serial->Serialize(deflate_ostream);
+	}
+	PopFile();
 
-	Fman::CompressionOfstream comp_ofstream(path);
-	serial->Serialize(comp_ofstream);
 }
 
 void Fman::DeserializeDecompress(ISerializable* serial)
 {
-	std::filesystem::path path = context.current_folder;
-	path /= context.serialize_filename;
+	if (PushFile(context.serialize_filename, mode::binary | mode::read))
+	{
+		Fman::DecompressionIstream inflate_istream(context.current_file);
+		serial->Deserialize(inflate_istream);
+	}
+	PopFile();
 
-	Fman::DecompressionIfstream comp_ifstream(path);
-	serial->Deserialize(comp_ifstream);
 }
 
-void Fman::SetSerializeFilename(std::string_view name)
+void Fman::SetSerializeFilename(const std::string_view name)
 {
 	if (!name.empty())
 	{
@@ -271,12 +274,3 @@ void Fman::SetSerializeFilename(std::string_view name)
 
 }
 
-void Fman::SerializeData(std::ostream& strm, const char* data, const size_t sz)
-{
-	strm.write(data, sz);
-}
-
-void Fman::DeserializeData(std::istream& strm, char* data, const size_t sz)
-{
-	strm.read(data, sz);
-}
