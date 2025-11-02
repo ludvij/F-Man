@@ -6,7 +6,7 @@
 #include <random>
 #include <array>
 
-#include "FileManager/util/compression_utils.hpp"
+#include "FileManager/util/compression_streams.hpp"
 
 struct SimpleSerialization : public Fman::ISerializable
 {
@@ -209,6 +209,8 @@ TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
 		REQUIRE(beeg.block_2 == expected.block_2);
 		REQUIRE(beeg.block_3 == expected.block_3);
 	}
+
+
 	beeg.block_1.clear();
 	beeg.block_2.clear();
 	beeg.block_3.clear();

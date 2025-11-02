@@ -2,7 +2,7 @@
 #define FILE_MANAGER_HEADER
 
 #include "Serializable.hpp"
-#include "util/compression_utils.hpp"
+#include "util/compression_streams.hpp"
 
 #include <filesystem>
 #include <string>

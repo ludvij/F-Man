@@ -15,14 +15,14 @@ set(SOURCES
 	include/FileManager/internal/pch.hpp
 	
 	
-	include/FileManager/util/compression_utils.hpp
+	include/FileManager/util/compression_streams.hpp
 	
 	src/FileManager.cpp
 	src/Serializable.cpp
 
 	src/internal/FileManager_internal.cpp
 
-	src/util/compression_utils.cpp
+	src/util/compression_streams.cpp
 
 )
 
@@ -31,19 +31,22 @@ set(SOURCES
 SET(ZLIB_USE_STATIC_LIBS ON)
 SET(ZLIB_BUILD_EXAMPLES OFF)
 
-include(FetchContent)
 
+SET(ZLIB_COMPAT ON)
+SET(ZLIB_ENABLE_TESTS OFF)
+SET(WITH_GTEST OFF)
+
+include(FetchContent)
 FetchContent_Declare(
-	zlib
-	GIT_REPOSITORY https://github.com/madler/zlib.git
-	GIT_TAG        v1.3.1
+	zlib_ng
+	GIT_REPOSITORY https://github.com/zlib-ng/zlib-ng.git
+	GIT_TAG        2.2.5
 	EXCLUDE_FROM_ALL
 )
 
-FetchContent_MakeAvailable(zlib)
-
-
-
+add_compile_options(-Wno-type-limits)
+FetchContent_MakeAvailable(zlib_ng)
+add_compile_options(-Wtype-limits)
 
 
 add_library(${PROJECT_NAME} STATIC)

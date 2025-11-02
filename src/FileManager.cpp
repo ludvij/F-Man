@@ -4,9 +4,8 @@
 #include "Serializable.hpp"
 
 #include <ludutils/lud_assert.hpp>
-#include <ludutils/lud_archive.hpp>
 
-#include "util/compression_utils.hpp"
+#include "util/compression_streams.hpp"
 
 namespace fs = std::filesystem;
 namespace ranges = std::ranges;

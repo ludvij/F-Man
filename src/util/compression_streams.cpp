@@ -1,4 +1,4 @@
-#include "util/compression_utils.hpp"
+#include "util/compression_streams.hpp"
 
 #include <zlib.h>
 
@@ -127,10 +127,9 @@ void compression_buffer::compress_buffer(const size_t sz, const bool end)
 }
 
 CompressionOstream::CompressionOstream(std::ostream& ostream)
-	: Base(nullptr)
+	: Base(&m_buffer)
 	, m_buffer(ostream)
 {
-	Base::rdbuf(&m_buffer);
 }
 
 
@@ -248,9 +247,8 @@ void decompression_buffer::set_get_area(const size_t sz)
 
 
 DecompressionIstream::DecompressionIstream(std::istream& istream)
-	: Base(nullptr)
+	: Base(&m_buffer)
 	, m_buffer(istream)
 {
-	Base::rdbuf(&m_buffer);
 }
 }
