@@ -28,6 +28,23 @@ set(SOURCES
 
 
 
+SET(ZLIB_USE_STATIC_LIBS ON)
+SET(ZLIB_BUILD_EXAMPLES OFF)
+
+include(FetchContent)
+
+FetchContent_Declare(
+	zlib
+	GIT_REPOSITORY https://github.com/madler/zlib.git
+	GIT_TAG        v1.3.1
+	EXCLUDE_FROM_ALL
+)
+
+FetchContent_MakeAvailable(zlib)
+
+
+
+
 
 add_library(${PROJECT_NAME} STATIC)
 
@@ -45,7 +62,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} 
 	PRIVATE ludutils
-	PRIVATE ZLIB::ZLIB
+	PRIVATE zlibstatic
 )
 
 if(generator_config MATCHES "DEBUG")
@@ -65,7 +82,6 @@ endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE CMAKE_EXPORT_COMPILE_COMMANDS=1)
 
 if (FMAN_TESTS)
-	include(FetchContent)
 
 	FetchContent_Declare(
 		Catch2
@@ -87,7 +103,7 @@ if (FMAN_TESTS)
 		PRIVATE Fman
 		PRIVATE Catch2::Catch2WithMain
 		PRIVATE ludutils
-		PRIVATE ZLIB::ZLIB
+		PRIVATE zlibstatic
 	)
 
 	list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
