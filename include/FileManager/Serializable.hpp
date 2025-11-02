@@ -82,12 +82,12 @@ void DeserializeStatic(std::istream& strm, T& t)
 template<typename T>
 void SerializeArrayStoresStatic(std::ostream& strm, const std::span<T> arr)
 {
-	SerializeData(strm, std::bit_cast<char*>( arr.data() ), sizeof(T) * arr.size());
+	SerializeData(strm, reinterpret_cast<const char*>( arr.data() ), sizeof(T) * arr.size());
 }
 template<typename T>
 void DeserializeArrayStoresStatic(std::istream& strm, std::span<T> arr)
 {
-	DeserializeData(strm, std::bit_cast<char*>(arr.data()), sizeof(T) * arr.size());
+	DeserializeData(strm, reinterpret_cast<char*>(arr.data()), sizeof(T) * arr.size());
 }
 
 template <std::ranges::contiguous_range R>
@@ -97,7 +97,7 @@ void SerializeContiguousRange(std::ostream &strm, const R &range)
 
 	const size_t size = std::ranges::size(range) * sizeof(T);
 	SerializeStatic(strm, size);
-	SerializeData(strm, std::bit_cast<char*>(range.data()), size);
+	SerializeData(strm, reinterpret_cast<const char*>(range.data()), size);
 }
 
 template <std::ranges::contiguous_range R>
@@ -111,7 +111,7 @@ void DeserializeContiguousRange(std::istream &strm, R &range)
 	{
 		range.resize(container_size);
 	}
-	DeserializeData(strm, std::bit_cast<char*>(range.data()), size);
+	DeserializeData(strm, reinterpret_cast<char*>(range.data()), size);
 
 }
 

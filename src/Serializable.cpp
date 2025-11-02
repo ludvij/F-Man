@@ -2,11 +2,11 @@
 
 void Fman::SerializeString(std::ostream &strm, const std::string &str)
 {
-	SerializeContiguousRange(strm, str);
+	SerializeContiguousRange<std::string>(strm, str);
 }
 
 void Fman::DeserializeString(std::istream &strm, std::string &str)
 {
-	DeserializeContiguousRange(strm, str);
+	DeserializeContiguousRange<std::string>(strm, str);
 }
 

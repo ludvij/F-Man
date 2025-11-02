@@ -1,6 +1,6 @@
 #include "util/compression_utils.hpp"
 
-#include <zlib/zlib.h>
+#include <zlib.h>
 
 #include <bit>
 #include <filesystem>
@@ -73,7 +73,7 @@ int compression_buffer::sync()
 
 void compression_buffer::set_put_area()
 {
-	char* cs = std::bit_cast<char*>( m_buffer.data() );
+	char* cs = reinterpret_cast<char*>( m_buffer.data() );
 	// whacky hack in order to accomodate extra ch in overflow
 	Base::setp(cs, cs + m_buffer.size());
 }
@@ -108,7 +108,7 @@ void compression_buffer::compress_buffer(const size_t sz, const bool end)
 			throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
 		}
 		const size_t have = CHUNK_SIZE - m_z_stream.avail_out;
-		m_output_stream.write(std::bit_cast<char*>(&out), have);
+		m_output_stream.write(reinterpret_cast<char*>(&out), have);
 		if (!m_output_stream)
 		{
 			throw std::runtime_error("error while writing to stream");
@@ -201,11 +201,10 @@ void decompression_buffer::decompress_buffer(bool end)
 	}
 	int err;
 
-	size_t have;
 
 	if (m_z_stream.avail_in == 0)
 	{
-		m_input_stream.read(std::bit_cast<char*>( m_in_bufer.data() ), CHUNK_SIZE);
+		m_input_stream.read(reinterpret_cast<char*>( m_in_bufer.data() ), CHUNK_SIZE);
 		
 		if (m_input_stream.bad())
 		{
@@ -232,7 +231,7 @@ void decompression_buffer::decompress_buffer(bool end)
 		throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
 	}
 
-	have = CHUNK_SIZE - m_z_stream.avail_out;
+	const size_t have = CHUNK_SIZE - m_z_stream.avail_out;
 
 	set_get_area(have);
 	if (err == Z_STREAM_END)
@@ -243,7 +242,7 @@ void decompression_buffer::decompress_buffer(bool end)
 
 void decompression_buffer::set_get_area(const size_t sz)
 {
-	char* cs = std::bit_cast<char*>( m_out_buffer.data() );
+	char* cs = reinterpret_cast<char*>( m_out_buffer.data() );
 	Base::setg(cs, cs, cs + sz);
 }
 

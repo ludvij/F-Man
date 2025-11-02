@@ -45,7 +45,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} 
 	PRIVATE ludutils
-	PRIVATE zlib
+	PRIVATE ZLIB::ZLIB
 )
 
 if(generator_config MATCHES "DEBUG")
@@ -87,7 +87,7 @@ if (FMAN_TESTS)
 		PRIVATE Fman
 		PRIVATE Catch2::Catch2WithMain
 		PRIVATE ludutils
-		PRIVATE zlib
+		PRIVATE ZLIB::ZLIB
 	)
 
 	list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)

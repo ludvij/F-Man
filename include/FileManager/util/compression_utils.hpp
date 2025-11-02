@@ -6,7 +6,7 @@
 #include <iostream>
 #include <streambuf>
 
-#include <zlib/zlib.h>
+#include <zlib.h>
 
 namespace Fman
 {
