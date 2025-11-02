@@ -23,9 +23,6 @@ set(SOURCES
 	src/internal/FileManager_internal.cpp
 
 	src/util/compression_streams.cpp
-
-	src/util/compression_utils.cpp
-
 )
 
 
