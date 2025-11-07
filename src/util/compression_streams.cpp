@@ -1,35 +1,105 @@
-#include "util/compression_streams.hpp"
+#include "internal/pch.hpp"
+
+#include "FileManager/util/compression_streams.hpp"
 
 #include <zlib.h>
 
-#include <bit>
-#include <filesystem>
 
-namespace Fman
+namespace Fman::Compression
 {
 
-compression_buffer::compression_buffer(std::ostream& output_stream)
+#ifdef ENABLES_FILE_MANAGER_COMPRESSION_LOG
+	#define FMAN_LOG(...) std::println(__VA_ARGS__);
+#else
+	#define FMAN_LOG(...) 
+#endif// ENABLES_FILE_MANAGER_COMPRESSION_LOG
+
+
+
+auto static constexpr translate_options(CompressionOptions options)
+{
+	struct {
+		int level;
+		int w_bits;
+		int strategy;
+	} t;
+
+	switch (options.level)
+	{
+	case CompressionLevel::NO_COMPRESSION:
+		t.level = Z_NO_COMPRESSION;
+		break;
+	case CompressionLevel::DEFAULT_COMPRESSION:
+		t.level = Z_DEFAULT_COMPRESSION;
+		break;
+	case CompressionLevel::BEST_COMPRESSION:
+		t.level = Z_BEST_COMPRESSION;
+	}
+
+	switch (options.type)
+	{
+	case CompressionType::RAW:
+		t.w_bits =-MAX_WBITS;
+		break;
+	case CompressionType::ZLIB:
+		t.w_bits = MAX_WBITS;
+		break;
+	case CompressionType::GZIP:
+		t.w_bits = MAX_WBITS + 16;
+		break;
+	case CompressionType::DETECT:
+		t.w_bits = MAX_WBITS + 32;
+		break;
+	}
+
+	switch (options.strategy)
+	{
+	case CompressionStrategy::DEFAULT:
+		t.strategy = Z_DEFAULT_STRATEGY;
+		break;
+	case CompressionStrategy::FILTERED:
+		t.strategy = Z_FILTERED;
+		break;
+	case CompressionStrategy::HUFFMAN_ONLY:
+		t.strategy = Z_HUFFMAN_ONLY;
+		break;
+	case CompressionStrategy::RLE:
+		t.strategy = Z_RLE;
+	default:
+		break;
+	}
+
+	return t;
+}
+
+
+CompressionStreambuf::CompressionStreambuf(std::ostream& output_stream, CompressionOptions options)
 	: m_output_stream(output_stream)
 {
 	set_put_area();
 
+	if (options.type == CompressionType::DETECT)
+	{
+		throw std::logic_error("Detect type can only be used in decompression");
+	}
+	const auto [level, w_bits, strategy] = translate_options(options);
 
 	m_z_stream.zalloc = Z_NULL;
 	m_z_stream.zfree  = Z_NULL;
 	m_z_stream.opaque = Z_NULL;
 
-	if (auto err = deflateInit(&m_z_stream, Z_DEFAULT_COMPRESSION); err != Z_OK)
+	if (auto err = deflateInit2(&m_z_stream, level, Z_DEFLATED, w_bits, 8, strategy); err != Z_OK)
 	{
 		throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
 	}
 }
 
-compression_buffer::~compression_buffer()
+CompressionStreambuf::~CompressionStreambuf() noexcept
 {
 	sync();
 }
 
-compression_buffer::IntT compression_buffer::overflow(IntT ch)
+CompressionStreambuf::IntT CompressionStreambuf::overflow(IntT ch)
 {
 	// sends all data to the paired stream
 
@@ -41,29 +111,29 @@ compression_buffer::IntT compression_buffer::overflow(IntT ch)
 	return TraitsT::not_eof(ch);
 }
 
-std::streamsize Fman::compression_buffer::xsputn(const CharT *s, std::streamsize count)
+std::streamsize CompressionStreambuf::xsputn(const CharT *s, std::streamsize count)
 {
 	std::streamsize written = 0;
-	//std::println("[WRITE]: Sent: {} available: {}", count, get_available_put_area());
+	FMAN_LOG("[WRITE]: Sent: {} available: {}", count, get_available_put_area());
 	while (written < count)
 	{
 		if (get_available_put_area() == 0)
 		{
-			//std::println("[WRITE]:   Called overflow");
+			FMAN_LOG("[WRITE]:   Called overflow");
 			overflow();
-			//std::println("[WRITE]:   Buffer size: {}", get_available_put_area());
+			FMAN_LOG("[WRITE]:   Buffer size: {}", get_available_put_area());
 		}
 		const auto avail = get_available_put_area();
 		const size_t to_copy = avail < (count - written) ? avail : (count - written);
 		TraitsT::copy(Base::pptr(), s + written, to_copy);
 		written += to_copy;
 		Base::pbump(to_copy);
-		//std::println("[WRITE]:   Wrote: {} [{}/{}]", to_copy, written, count);
+		FMAN_LOG("[WRITE]:   Wrote: {} [{}/{}]", to_copy, written, count);
 	}
 	return written;
 }
 
-int compression_buffer::sync()
+int CompressionStreambuf::sync()
 {
 	std::streamsize total = Base::pptr() - Base::pbase();
 	compress_buffer(total, true);
@@ -71,19 +141,19 @@ int compression_buffer::sync()
 }
 
 
-void compression_buffer::set_put_area()
+void CompressionStreambuf::set_put_area()
 {
 	char* cs = reinterpret_cast<char*>( m_buffer.data() );
 	// whacky hack in order to accomodate extra ch in overflow
 	Base::setp(cs, cs + m_buffer.size());
 }
 
-std::streamsize compression_buffer::get_available_put_area() const
+std::streamsize CompressionStreambuf::get_available_put_area() const
 {
 	return Base::epptr() - Base::pptr();
 }
 
-void compression_buffer::compress_buffer(const size_t sz, const bool end)
+void CompressionStreambuf::compress_buffer(const size_t sz, const bool end)
 {
 	int err;
 	uint8_t out[CHUNK_SIZE];
@@ -126,73 +196,74 @@ void compression_buffer::compress_buffer(const size_t sz, const bool end)
 
 }
 
-CompressionOstream::CompressionOstream(std::ostream& ostream)
+CompressionOstream::CompressionOstream(std::ostream& ostream, CompressionOptions options)
 	: Base(&m_buffer)
-	, m_buffer(ostream)
+	, m_buffer(ostream, options)
 {
 }
 
 
 
-decompression_buffer::decompression_buffer(std::istream& input_stream)
+DecompressionStreambuf::DecompressionStreambuf(std::istream& input_stream, CompressionOptions options)
 	: m_input_stream(input_stream)
 {
-	m_z_stream.zalloc = Z_NULL;
-	m_z_stream.zfree  = Z_NULL;
-	m_z_stream.opaque = Z_NULL;
+	const auto [level, w_bits, strategy] = translate_options(options);
 
+	m_z_stream.zalloc   = Z_NULL;
+	m_z_stream.zfree    = Z_NULL;
+	m_z_stream.opaque   = Z_NULL;
 	m_z_stream.avail_in = 0;
-	m_z_stream.next_out = Z_NULL;
+	m_z_stream.next_in  = Z_NULL;
 
-	if (auto err = inflateInit(&m_z_stream); err != Z_OK)
+	if (auto err = inflateInit2(&m_z_stream, w_bits); err != Z_OK)
 	{
 		throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
 	}
 }
 
-decompression_buffer::~decompression_buffer()
+DecompressionStreambuf::~DecompressionStreambuf()
 {
-	if (m_finished)
+	if (!m_finished)
 	{
 		(void)inflateEnd(&m_z_stream);
 	}
 }
 
-decompression_buffer::IntT decompression_buffer::underflow()
+DecompressionStreambuf::IntT DecompressionStreambuf::underflow()
 {
 	decompress_buffer();
 
 	return TraitsT::not_eof(*Base::gptr());
 }
 
-std::streamsize decompression_buffer::xsgetn(CharT *s, std::streamsize count)
+std::streamsize DecompressionStreambuf::xsgetn(CharT *s, std::streamsize count)
 {
 	std::streamsize read = 0;
-	//std::println("[ READ]: Requested: {} available: {}", count, showmanyc());
+	FMAN_LOG("[ READ]: Requested: {} available: {}", count, showmanyc());
 	while(read < count)
 	{
 		if (showmanyc() == 0)
 		{
-			//std::println("[ READ]:   Called underflow");
+			FMAN_LOG("[ READ]:   Called underflow");
 			underflow();
-			//std::println("[ READ]:   Buffer size: {}", showmanyc());
+			FMAN_LOG("[ READ]:   Buffer size: {}", showmanyc());
 		}
 		const auto avail = showmanyc();
 		const size_t to_copy = avail < (count - read) ? avail : ( count - read);
 		TraitsT::copy(s + read, Base::gptr(), to_copy);
 		read += to_copy;
 		Base::gbump(to_copy);
-		//std::println("[ READ]:   Read: {} [{}/{}]", to_copy, read, count);
+		FMAN_LOG("[ READ]:   Read: {} [{}/{}]", to_copy, read, count);
 	}
 
 	return read;
 }
 
-std::streamsize decompression_buffer::showmanyc()
+std::streamsize DecompressionStreambuf::showmanyc()
 {
 	return Base::egptr() - Base::gptr();
 }
-void decompression_buffer::decompress_buffer(bool end)
+void DecompressionStreambuf::decompress_buffer(bool end)
 {
 	if (m_finished)
 	{
@@ -227,7 +298,9 @@ void decompression_buffer::decompress_buffer(bool end)
 	case Z_DATA_ERROR:
 		[[fallthrough]];
 	case Z_MEM_ERROR:
-		throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
+		m_finished = true;
+		(void)inflateEnd(&m_z_stream);
+		throw std::runtime_error("ZLIB error, could not continue");
 	}
 
 	const size_t have = CHUNK_SIZE - m_z_stream.avail_out;
@@ -239,16 +312,16 @@ void decompression_buffer::decompress_buffer(bool end)
 	}
 }
 
-void decompression_buffer::set_get_area(const size_t sz)
+void DecompressionStreambuf::set_get_area(const size_t sz)
 {
 	char* cs = reinterpret_cast<char*>( m_out_buffer.data() );
 	Base::setg(cs, cs, cs + sz);
 }
 
 
-DecompressionIstream::DecompressionIstream(std::istream& istream)
+DecompressionIstream::DecompressionIstream(std::istream& istream, CompressionOptions options)
 	: Base(&m_buffer)
-	, m_buffer(istream)
+	, m_buffer(istream, options)
 {
 }
 }

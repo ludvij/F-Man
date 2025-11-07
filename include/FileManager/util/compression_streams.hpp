@@ -10,9 +10,45 @@
 
 namespace Fman
 {
+	
+namespace Compression
+{
 constexpr static size_t CHUNK_SIZE = 16384;
 
-class compression_buffer : public std::streambuf
+enum class CompressionType
+{
+	RAW,     // Window bits from [-8, -15] set to -15
+	ZLIB,    // Window bits from [ 8,  15] set to  15
+	GZIP,    // Window bits from [16,  31] set to  31
+	DETECT,  // Window bits from [32,  47] set to  47
+};
+
+enum class CompressionLevel
+{
+	NO_COMPRESSION,
+	DEFAULT_COMPRESSION,
+	BEST_COMPRESSION,
+};
+
+enum class CompressionStrategy
+{
+	DEFAULT,
+	FILTERED,
+	HUFFMAN_ONLY,
+	RLE
+};
+
+struct CompressionOptions
+{
+	CompressionType type         = CompressionType::ZLIB;
+	CompressionLevel level       = CompressionLevel::DEFAULT_COMPRESSION;
+	CompressionStrategy strategy = CompressionStrategy::DEFAULT;
+	// int memLevel; // UNUSED
+};
+
+
+
+class CompressionStreambuf : public std::streambuf
 {
 public:
 
@@ -26,10 +62,16 @@ public:
 
 	/**
 	 * @brief constructs compresion buffer
-	 * @param output_stream stream where the compressed data will be sent to
+	 * @param output_stream The stream where the compressed data will be sent to
+	 * @param options The options to be used by zlib
 	 */
-	compression_buffer(std::ostream& output_stream);
-	~compression_buffer();
+	CompressionStreambuf(std::ostream& output_stream, CompressionOptions options = {});
+	~CompressionStreambuf() noexcept;
+
+	CompressionStreambuf(const CompressionStreambuf&) = delete;
+	CompressionStreambuf& operator=(const CompressionStreambuf&) = delete;
+	CompressionStreambuf(CompressionStreambuf&&) = delete;
+	CompressionStreambuf& operator=(CompressionStreambuf&&) = delete;
 
 protected:
 
@@ -53,7 +95,7 @@ private:
 	z_stream m_z_stream;
 };
 
-class decompression_buffer : public std::streambuf
+class DecompressionStreambuf : public std::streambuf
 {
 public:
 	using Base    = std::streambuf;
@@ -66,11 +108,16 @@ public:
 
 	/**
 	 * @brief constructs decompression buffer
-	 * @param input_stream stream where the decompressed data will be read from
+	 * @param input_stream The stream where the decompressed data will be read from
+	 * @param options The compression options to be used by zlib
 	 */
-	decompression_buffer(std::istream& input_stream);
-	~decompression_buffer();
+	DecompressionStreambuf(std::istream& input_stream, CompressionOptions options = {});
+	~DecompressionStreambuf();
 
+	DecompressionStreambuf(const DecompressionStreambuf&) = delete;
+	DecompressionStreambuf& operator=(const DecompressionStreambuf&) = delete;
+	DecompressionStreambuf(DecompressionStreambuf&&) = delete;
+	DecompressionStreambuf& operator=(DecompressionStreambuf&&) = delete;
 
 protected:
 	virtual IntT underflow() override;
@@ -103,9 +150,15 @@ class CompressionOstream : public std::ostream
 public:
 	using Base = std::ostream;
 public:
-	CompressionOstream(std::ostream& ostream);
+	CompressionOstream(std::ostream& ostream, CompressionOptions options = {});
+
+	CompressionOstream(const CompressionOstream&) = delete;
+	CompressionOstream& operator=(const CompressionOstream&) = delete;
+	CompressionOstream(CompressionOstream&&) = delete;
+	CompressionOstream& operator=(CompressionOstream&&) = delete;
+
 private:
-	Fman::compression_buffer m_buffer;
+	CompressionStreambuf m_buffer;
 };
 
 class DecompressionIstream : public std::istream
@@ -113,10 +166,17 @@ class DecompressionIstream : public std::istream
 public:
 	using Base = std::istream;
 public:
-	DecompressionIstream(std::istream& istream);
+	DecompressionIstream(std::istream& istream, CompressionOptions options = {});
+
+	DecompressionIstream(const DecompressionIstream&) = delete;
+	DecompressionIstream& operator=(const DecompressionIstream&) = delete;
+	DecompressionIstream(DecompressionIstream&&) = delete;
+	DecompressionIstream& operator=(DecompressionIstream&&) = delete;
+	
 private:
-	Fman::decompression_buffer m_buffer;
+	DecompressionStreambuf m_buffer;
 };
+}
 }
 
 

@@ -7,25 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 option(FMAN_TESTS "Enable tests project" OFF)
 
-set(SOURCES
-	include/FileManager/Serializable.hpp
-	include/FileManager/FileManager.hpp
-	
-	include/FileManager/internal/FileManager_internal.hpp
-	include/FileManager/internal/pch.hpp
-	
-	
-	include/FileManager/util/compression_streams.hpp
-	
-	src/FileManager.cpp
-	src/Serializable.cpp
-
-	src/internal/FileManager_internal.cpp
-
-	src/util/compression_streams.cpp
-)
-
-
 
 SET(ZLIB_USE_STATIC_LIBS ON)
 SET(ZLIB_BUILD_EXAMPLES OFF)
@@ -50,16 +31,32 @@ add_compile_options(-Wtype-limits)
 
 add_library(${PROJECT_NAME} STATIC)
 
-target_precompile_headers(${PROJECT_NAME} PRIVATE include/FileManager/internal/pch.hpp)
+target_precompile_headers(${PROJECT_NAME} PRIVATE src/internal/pch.hpp)
 
+set(SOURCES
+	include/FileManager/Serializable.hpp
+	include/FileManager/FileManager.hpp
+	
+	src/internal/FileManager_internal.hpp
+	src/internal/FileManager_internal.cpp
+	
+	src/internal/pch.hpp
+	src/FileManager.cpp
+	src/Serializable.cpp
 
-target_sources(${PROJECT_NAME}
-	PRIVATE ${SOURCES}
+	include/FileManager/util/compression_streams.hpp
+	src/util/compression_streams.cpp
+
+	include/FileManager/util/zip.hpp
+	src/util/zip.cpp
+
 )
 
+target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
+
 target_include_directories(${PROJECT_NAME}
-	PUBLIC include
-	PRIVATE include/FileManager
+	PUBLIC  ${CMAKE_CURRENT_LIST_DIR}/include
+	PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 target_link_libraries(${PROJECT_NAME} 

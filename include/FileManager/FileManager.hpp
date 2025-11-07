@@ -8,6 +8,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <optional>
+
 
 
 namespace Fman
@@ -69,21 +71,30 @@ bool SetRootToKnownPath(const std::string& name);
  * @param name new folder name, will be appended to the current one
  * @param create true if create folder if not exists
  *
- * @return true if folder was created or entered
- * @return false if folder does not exists
+ * @return true if folder was entered
+ * @return false if folder was not entered
  */
 bool PushFolder(const std::filesystem::path& name, bool create = true);
 
-bool PushFolder(std::initializer_list<std::filesystem::path> name, bool create = true);
+
+/**
+ * @brief Pushes multiple folders
+ * @param names list of folders
+ * @param create true will create folder if it does not exists
+ * @return true if all folders entered successfully
+ * @return false if all folders were not entered
+ */
+bool PushFolder(std::initializer_list<std::filesystem::path> names, bool create = true);
 
 
 /**
  * @brief Allocates and returns file name in current
  *        The user does not need to delete the allocated memory
+ *        Dirty little hack for imgui
  *
  * @param name name of file
  *
- * @return char* allocated 0 terminated string
+ * @return cstring containing current_path/name
  */
 char* AllocateFileName(const char* name);
 
@@ -97,14 +108,15 @@ void PopFolder(int amount=1);
 
 
 /**
-* @brief Opens a file
-*
-* @param name, name of the file to be created
-* @param mode, open mode of file
-*/
-bool PushFile(std::filesystem::path name, OpenMode mode=mode::write | mode::append);
+ * @brief Opens a file
+ *
+ * @param name name of the file to be created
+ * @param mode open mode of file
+ *
+ * @return file stream of opened file if file is opened or std::nullopt in case of fail
+ */
+std::optional<std::fstream> PushFile(const std::filesystem::path& name, OpenMode mode=mode::write | mode::append);
 
-void PopFile();
 
 
 /** A
@@ -124,10 +136,13 @@ void PopFile();
  */
 std::vector<std::filesystem::path> Traverse(int depth = 1, TraverseMode trav_mode = traverse::all, std::initializer_list<std::string_view> filters = {});
 
-void Write(const std::string_view text);
 
-std::string Slurp(std::filesystem::path path);
-
+/**
+ * @brief returns whole file as a single string
+ * @param path the path to the file
+ * @return string containing file contents
+ */
+std::string Slurp(const std::filesystem::path& path);
 
 }
 #endif

@@ -1,12 +1,14 @@
-#include "Serializable.hpp"
+#include "internal/pch.hpp"
 
-void Fman::SerializeString(std::ostream &strm, const std::string &str)
+#include "FileManager/Serializable.hpp"
+
+void Fman::SerializeString(std::ostream &strm, const std::string& str)
 {
-	SerializeContiguousRange<std::string>(strm, str);
+	SerializeContiguousRangeStoresStatic(strm, str);
 }
 
 void Fman::DeserializeString(std::istream &strm, std::string &str)
 {
-	DeserializeContiguousRange<std::string>(strm, str);
+	DeserializeContiguousRangeStoresStatic(strm, str);
 }
 

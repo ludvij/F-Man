@@ -8,6 +8,8 @@
 
 #include "FileManager/util/compression_streams.hpp"
 
+using namespace Fman::Compression;
+
 struct SimpleSerialization : public Fman::ISerializable
 {
 	int    data_int_1;
@@ -22,22 +24,27 @@ struct SimpleSerialization : public Fman::ISerializable
 		, data_size(d_size)
 		{}
 
+	#define CLASS_MEMBERS \
+		X(data_int_1, Static) \
+		X(data_int_2, Static) \
+		X(data_double, Static) \
+		X(data_size, Static) \
 
 	virtual void Serialize(std::ostream& stream) override
 	{
-		Fman::SerializeStatic(stream, data_int_1);
-		Fman::SerializeStatic(stream, data_int_2);
-		Fman::SerializeStatic(stream, data_double);
-		Fman::SerializeStatic(stream, data_size);
+		#define X(member, type) Fman::Serialize##type(stream, member);
+		CLASS_MEMBERS;
+		#undef X
 	}
 
 	virtual void Deserialize(std::istream& stream) override
 	{
-		Fman::DeserializeStatic(stream, data_int_1);
-		Fman::DeserializeStatic(stream, data_int_2);
-		Fman::DeserializeStatic(stream, data_double);
-		Fman::DeserializeStatic(stream, data_size);
+		#define X(member, type) Fman::Deserialize##type(stream, member);
+		CLASS_MEMBERS;
+		#undef X
 	}
+
+	#undef CLASS_MEMBERS
 };
 
 struct BigSerializable : public Fman::ISerializable
@@ -48,38 +55,52 @@ struct BigSerializable : public Fman::ISerializable
 	std::vector<uint8_t> block_3;
 	std::string end{"END"};
 
+	#define CLASS_MEMBERS \
+		X(begin, String) \
+		X(block_1, ContiguousRangeStoresStatic) \
+		X(block_2, ContiguousRangeStoresStatic) \
+		X(block_3, ContiguousRangeStoresStatic) \
+		X(end, String)
+
 	virtual void Serialize(std::ostream& stream) override
 	{
-		Fman::SerializeString(stream, begin);
-		Fman::SerializeContiguousRange(stream, block_1);
-		Fman::SerializeContiguousRange(stream, block_2);
-		Fman::SerializeContiguousRange(stream, block_3);
-		Fman::SerializeString(stream, end);
+		#define X(member, type) Fman::Serialize##type(stream, member);
+		CLASS_MEMBERS;
+		#undef X
 	}
 
 	virtual void Deserialize(std::istream& stream) override
 	{
-		Fman::DeserializeString(stream, begin);
-		Fman::DeserializeContiguousRange(stream, block_1);
-		Fman::DeserializeContiguousRange(stream, block_2);
-		Fman::DeserializeContiguousRange(stream, block_3);
-		Fman::DeserializeString(stream, end);
+		#define X(member, type) Fman::Deserialize##type(stream, member);
+		CLASS_MEMBERS;
+		#undef X
 	}
+
+	#undef CLASS_MEMBERS
 };
 
 struct BiggerThanBlockSize : public Fman::ISerializable
 {
-	std::array<uint8_t, Fman::CHUNK_SIZE * 4> test;
+	std::array<uint8_t, CHUNK_SIZE * 4> test;
 
+	#define CLASS_MEMBERS \
+		X(test, ArrayStoresStatic<uint8_t>)
+		
 	virtual void Serialize(std::ostream& stream) override
 	{
-		Fman::SerializeArrayStoresStatic<uint8_t>(stream, test);
+		#define X(member, type) Fman::Serialize##type(stream, member);
+		CLASS_MEMBERS;
+		#undef X
 	}
 
 	virtual void Deserialize(std::istream& stream) override
 	{
-		Fman::DeserializeArrayStoresStatic<uint8_t>(stream, test);
+		#define X(member, type) Fman::Deserialize##type(stream, member);
+		CLASS_MEMBERS;
+		#undef X
 	}
+
+	#undef CLASS_MEMBERS
 };
 
 
@@ -150,9 +171,9 @@ TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
 	std::mt19937 mt(2051920);
 	std::uniform_int_distribution<uint8_t> dist;
 	BigSerializable beeg;
-	beeg.block_1.resize(Fman::CHUNK_SIZE);
-	beeg.block_2.resize(Fman::CHUNK_SIZE);
-	beeg.block_3.resize(Fman::CHUNK_SIZE);
+	beeg.block_1.resize(CHUNK_SIZE);
+	beeg.block_2.resize(CHUNK_SIZE);
+	beeg.block_3.resize(CHUNK_SIZE);
 	for(auto& elem : beeg.block_1)
 	{
 		elem = dist(mt);

@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <streambuf>
 
 // data structures
 #include <deque>
@@ -29,8 +30,9 @@
 #include <compare>
 #include <print>
 #include <utility>
+#include <bit>
 
 // lib support
-#include "internal/FileManager_internal.hpp"
+#include "FileManager_internal.hpp"
 
-#include "FileManager.hpp"
+#include "FileManager/FileManager.hpp"

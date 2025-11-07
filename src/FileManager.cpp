@@ -1,28 +1,34 @@
 #include "internal/pch.hpp"
 
-#include "FileManager.hpp"
-#include "Serializable.hpp"
+#include "FileManager/FileManager.hpp"
+#include "FileManager/Serializable.hpp"
+#include "FileManager/util/compression_streams.hpp"
 
 #include <ludutils/lud_assert.hpp>
 
-#include "util/compression_streams.hpp"
 
 namespace fs = std::filesystem;
 namespace ranges = std::ranges;
 
-Fman::_detail_::Context context;
 
-fs::path Fman::GetCurrent()
+namespace Fman
+{
+_detail_::Context context;
+
+using Compression::CompressionOstream;
+using Compression::DecompressionIstream;
+
+fs::path GetCurrent()
 {
 	return context.current_folder;
 }
 
-fs::path Fman::GetRoot()
+fs::path GetRoot()
 {
 	return context.root;
 }
 
-bool Fman::SetRoot(const fs::path& name)
+bool SetRoot(const fs::path& name)
 {
 	if (name.empty())
 	{
@@ -39,7 +45,7 @@ bool Fman::SetRoot(const fs::path& name)
 	}
 }
 
-bool Fman::SetRootToKnownPath(const std::string& name)
+bool SetRootToKnownPath(const std::string& name)
 {
 	if (auto path = context.known_paths.find(name); path != context.known_paths.end())
 	{
@@ -49,18 +55,16 @@ bool Fman::SetRootToKnownPath(const std::string& name)
 }
 
 
-bool Fman::PushFolder(const fs::path& name, bool create/*= true*/)
+bool PushFolder(const fs::path& name, bool create/*= true*/)
 {
-	Lud::assert::that(!context.current_file.is_open(), "Can't push folder before popping file");
-	Lud::assert::that(!name.has_extension(), "Can't push file while pushing folder");
-
+	// folders can not end on period
+	Lud::check::that(!name.filename().empty() && name.extension().empty(), "Folders can't have trailing period");
 	if (create)
 	{
 		context.current_folder /= name;
 		context.folders.emplace_back(fs::absolute(context.current_folder));
 
 		fs::create_directories(context.current_folder);
-		return true;
 	}
 	else
 	{
@@ -72,50 +76,66 @@ bool Fman::PushFolder(const fs::path& name, bool create/*= true*/)
 		context.folders.emplace_back(name);
 		context.current_folder /= name;
 
-		return true;
 	}
-
+	return true;
 }
 
-bool Fman::PushFolder(std::initializer_list<fs::path> name, bool create/*= true*/)
+bool PushFolder(std::initializer_list<fs::path> name, bool create/*= true*/)
 {
-	uint32_t res = false;
 	for (const auto& f : name)
 	{
-		res += PushFolder(f, create);
+		if (!PushFolder(f, create))
+		{
+			return false;
+		}
 	}
-	return res == name.size();
+	return true;
 }
 
-char* Fman::AllocateFileName(const char* name)
+/**
+ * @brief copies min(src_sz, dst_sz) chars from src to dst
+ * @param src ptr to source cstring
+ * @param src_sz size of source cstring without null terminator
+ * @param dst ptr to destination cstring
+ * @param dst_sz size of destination cstring without null terminator
+ */
+static void fman_strncpyn(const char* src, size_t src_sz, char* dst, size_t dst_sz)
+{
+	if(src == nullptr || dst == nullptr)
+	{
+		return;
+	}
+
+	const size_t min_sz = src_sz > dst_sz ? dst_sz : src_sz;
+
+	memmove(dst, src, min_sz);
+
+	dst[dst_sz] = '\0';
+}
+
+// huh???
+char* AllocateFileName(const char* name)
 {
 	auto current = GetCurrent();
 	current.append(name);
 	auto repr = current.string();
-	size_t sz = repr.size() + 1;
+	size_t sz = repr.size();
 
-	char* s = new char[sz]
-		{
-			0
-		};
-		if (s)
-		{
-		#if defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__) && __STDC_WANT_LIB_EXT1__ == 1
-			std::strncpy_s(s, sz, repr.c_str(), sz);
-		#else
-			std::strncpy(s, repr.c_str(), sz);
-		#endif
-		}
-		context.allocations.push_back(s);
+	char* s = new char[sz + 1]{0};
 
-		return s;
+	if (s)
+	{
+		fman_strncpyn(repr.c_str(), sz, s, sz);
+	}
+	context.allocations.push_back(s);
+
+	return s;
 }
 
-void Fman::PopFolder(int amount)
+void PopFolder(int amount)
 {
 	size_t u_amount = std::abs(amount);
-	Lud::assert::leq(u_amount, context.folders.size(), "Can't pop more folders than pushed amount");
-	Lud::assert::that(!context.current_file.is_open(), "Can't pop folder before popping file");
+	Lud::check::leq(u_amount, context.folders.size(), "Can't pop more folders than pushed amount");
 
 	if (amount < 0 || u_amount == context.folders.size())
 	{
@@ -129,31 +149,21 @@ void Fman::PopFolder(int amount)
 	context.current_folder = context.folders.back();
 }
 
-bool Fman::PushFile(fs::path name, OpenMode mode)
+std::optional<std::fstream> PushFile(const fs::path& name, OpenMode mode)
 {
-	Lud::assert::that(!context.current_file.is_open(), "You need to call PopFile before calling PushFile again");
-
 	fs::path path = context.current_folder;
 	path.append(name.string());
 	if (!fs::exists(path) && ( mode & mode::read ))
 	{
-		return false;
+		return std::nullopt;
 	}
-	context.current_file.open(path, static_cast<std::ios_base::openmode>( mode ));
 
-	return context.current_file.is_open();
+	return std::fstream{path, static_cast<std::ios_base::openmode>( mode )};
 }
 
-void Fman::PopFile()
+std::vector<std::filesystem::path> Traverse(const int depth, const TraverseMode trav_mode, const std::initializer_list<std::string_view> filters)
 {
-	Lud::assert::that(context.current_file.is_open(), "You need to call PushFile before calling PopFile");
-
-	context.current_file.close();
-}
-
-std::vector<std::filesystem::path> Fman::Traverse(const int depth, const TraverseMode trav_mode, const std::initializer_list<std::string_view> filters)
-{
-	Lud::assert::ne(depth, 0, "depth must be different from 0");
+	Lud::check::ne(depth, 0, "depth must be different from 0");
 	std::vector<fs::path> result;
 
 	int curr_depth = 0;
@@ -194,83 +204,74 @@ std::vector<std::filesystem::path> Fman::Traverse(const int depth, const Travers
 	return result;
 }
 
-void Fman::Write(const std::string_view text)
-{
-	Lud::assert::that(context.current_file.is_open(), "You need to call PushFile before writing to a file");
 
-	context.current_file << text;
-}
-
-std::string Fman::Slurp(std::filesystem::path path)
+std::string Slurp(const fs::path& path)
 {
-	if (!PushFile(path, mode::read | mode::end | mode::binary))
+	auto file_opt = PushFile(path, mode::read | mode::end);
+	if (!file_opt.has_value())
 	{
 		return {};
 	}
-	const size_t size = context.current_file.tellg();
-	context.current_file.seekg(0, std::ios::beg);
 
-	char* buf = new char[size];
-	context.current_file.read(buf, size);
-	std::string res(buf, size);
+	auto& file = file_opt.value();
+	const size_t size = file.tellg();
+	file.seekg(0, std::ios::beg);
+	
+	char* buffer = new char[size];
+	file.read(buffer, size);
 
-	delete[] buf;
-	PopFile();
+	std::string res(buffer, size);
+	delete[] buffer;
 
 	return res;
 
 }
 
-void Fman::Serialize(ISerializable* serial)
+void Serialize(ISerializable* serial)
 {
-	if (PushFile(context.serialize_filename, mode::binary | mode::write))
+	auto file = PushFile(context.serialize_filename, mode::binary | mode::write);
+	if (!file)
 	{
-		serial->Serialize(context.current_file);
-		PopFile();
+		// idk
 	}
+	serial->Serialize(file.value());
 }
 
-void Fman::Deserialize(ISerializable* serial)
+void Deserialize(ISerializable* serial)
 {
-	if (PushFile(context.serialize_filename, mode::binary | mode::read))
+	auto file = PushFile(context.serialize_filename, mode::binary | mode::read);
+	if (!file)
 	{
-		serial->Deserialize(context.current_file);
-		PopFile();
+		// idk
 	}
+	serial->Deserialize(file.value());
 }
 
-void Fman::SerializeCompress(ISerializable* serial)
+void SerializeCompress(ISerializable* serial)
 {
-	if (PushFile(context.serialize_filename, mode::binary | mode::write))
+	auto file = PushFile(context.serialize_filename, mode::binary | mode::write);
+	if (!file)
 	{
-		Fman::CompressionOstream deflate_ostream(context.current_file);
-		serial->Serialize(deflate_ostream);
+		// idk
 	}
-	PopFile();
-
+	CompressionOstream deflate_ostream(file.value());
+	serial->Serialize(deflate_ostream);
 }
 
-void Fman::DeserializeDecompress(ISerializable* serial)
+void DeserializeDecompress(ISerializable* serial)
 {
-	if (PushFile(context.serialize_filename, mode::binary | mode::read))
+	auto file = PushFile(context.serialize_filename, mode::binary | mode::read);
+	if (!file)
 	{
-		Fman::DecompressionIstream inflate_istream(context.current_file);
-		serial->Deserialize(inflate_istream);
+		// idk
 	}
-	PopFile();
-
+	DecompressionIstream inflate_istream(file.value());
+	serial->Deserialize(inflate_istream);
 }
 
-void Fman::SetSerializeFilename(const std::string_view name)
+void SetSerializeFilename(const std::string_view name)
 {
-	if (!name.empty())
-	{
-		context.serialize_filename = name;
-	}
-	else
-	{
-		context.serialize_filename = "srl.dat";
-	}
-
+	context.serialize_filename = name;
 }
 
+}

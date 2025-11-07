@@ -1,6 +1,6 @@
-#include "internal/pch.hpp"
+#include "pch.hpp"
 
-#include "internal/FileManager_internal.hpp"
+#include "FileManager_internal.hpp"
 
 #if defined(FILEMANAGER_PLATFORM_WINDOWS)
 #include <ShlObj.h>
