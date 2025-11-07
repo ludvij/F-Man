@@ -15,6 +15,7 @@ SET(ZLIB_BUILD_EXAMPLES OFF)
 SET(ZLIB_COMPAT ON)
 SET(ZLIB_ENABLE_TESTS OFF)
 SET(WITH_GTEST OFF)
+SET(BUILD_SHARED_LIBS FALSE)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -27,6 +28,7 @@ FetchContent_Declare(
 add_compile_options(-Wno-type-limits)
 FetchContent_MakeAvailable(zlib_ng)
 add_compile_options(-Wtype-limits)
+
 
 
 add_library(${PROJECT_NAME} STATIC)

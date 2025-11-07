@@ -1,4 +1,4 @@
-#include "internal/pch.hpp"
+// #include "internal/pch.hpp"
 
 #include "FileManager/util/compression_streams.hpp"
 
@@ -22,7 +22,7 @@ auto static constexpr translate_options(CompressionOptions options)
 		int level;
 		int w_bits;
 		int strategy;
-	} t;
+	} t{};
 
 	switch (options.level)
 	{
@@ -120,14 +120,14 @@ std::streamsize CompressionStreambuf::xsputn(const CharT *s, std::streamsize cou
 		if (get_available_put_area() == 0)
 		{
 			FMAN_LOG("[WRITE]:   Called overflow");
-			overflow();
+			overflow(TraitsT::eof());
 			FMAN_LOG("[WRITE]:   Buffer size: {}", get_available_put_area());
 		}
 		const auto avail = get_available_put_area();
-		const size_t to_copy = avail < (count - written) ? avail : (count - written);
+		const std::streamsize to_copy = avail < (count - written) ? avail : (count - written);
 		TraitsT::copy(Base::pptr(), s + written, to_copy);
 		written += to_copy;
-		Base::pbump(to_copy);
+		Base::pbump(static_cast<int>(to_copy));
 		FMAN_LOG("[WRITE]:   Wrote: {} [{}/{}]", to_copy, written, count);
 	}
 	return written;
@@ -177,7 +177,7 @@ void CompressionStreambuf::compress_buffer(const size_t sz, const bool end)
 			(void)deflateEnd(&m_z_stream);
 			throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
 		}
-		const size_t have = CHUNK_SIZE - m_z_stream.avail_out;
+		const std::streamsize have = CHUNK_SIZE - m_z_stream.avail_out;
 		m_output_stream.write(reinterpret_cast<char*>(&out), have);
 		if (!m_output_stream)
 		{
@@ -249,10 +249,10 @@ std::streamsize DecompressionStreambuf::xsgetn(CharT *s, std::streamsize count)
 			FMAN_LOG("[ READ]:   Buffer size: {}", showmanyc());
 		}
 		const auto avail = showmanyc();
-		const size_t to_copy = avail < (count - read) ? avail : ( count - read);
+		const std::streamsize to_copy = avail < (count - read) ? avail : ( count - read);
 		TraitsT::copy(s + read, Base::gptr(), to_copy);
 		read += to_copy;
-		Base::gbump(to_copy);
+		Base::gbump(static_cast<int>(to_copy));
 		FMAN_LOG("[ READ]:   Read: {} [{}/{}]", to_copy, read, count);
 	}
 
@@ -301,6 +301,7 @@ void DecompressionStreambuf::decompress_buffer(bool end)
 		m_finished = true;
 		(void)inflateEnd(&m_z_stream);
 		throw std::runtime_error("ZLIB error, could not continue");
+	default: break;
 	}
 
 	const size_t have = CHUNK_SIZE - m_z_stream.avail_out;

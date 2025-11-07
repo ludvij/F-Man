@@ -55,7 +55,7 @@ std::filesystem::path GetRoot();
 /**
  * @brief Set the Root object
  *
- * @param name (optional) name of the new root
+ * @param path (optional) name of the new root
  *             if not set will set root to current
  *
  * @return true if folder was created

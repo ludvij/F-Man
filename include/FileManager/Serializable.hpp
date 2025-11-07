@@ -1,12 +1,9 @@
 #ifndef FILE_MANAGER_SERIALIZABLE_HEADER
 #define FILE_MANAGER_SERIALIZABLE_HEADER
 
-#include "FileManager.hpp"
-
-#include <fstream>
-#include <print>
 #include <ranges>
 #include <span>
+#include <iostream>
 
 namespace Fman
 {
@@ -17,7 +14,7 @@ namespace Fman
 class ISerializable
 {
 public:
-	
+	virtual ~ISerializable() = default;
 	/**
 	 * @brief Serializes the object to a stream
 	 * @param strm The stream to serialize to
@@ -85,7 +82,7 @@ void SerializeStatic(std::ostream& strm, const T& t);
  * @param t The object to be deserialized
  */
 template<typename T> 
-void DeserializeStatic(std::istream& strm, const T& t);
+void DeserializeStatic(std::istream& strm, T& t);
 
 /**
  * @brief Serilizes any viewable, contigous & fixed size range
@@ -240,12 +237,12 @@ void DeserializeDynamicRangeStoresStatic(std::istream &strm, R &range)
 
 inline constexpr void SerializeData(std::ostream &strm, const char *data, const size_t sz)
 {
-	strm.write(data, sz);
+	strm.write(data, static_cast<std::streamsize>(sz));
 }
 
 inline constexpr void DeserializeData(std::istream& strm, char* data, const size_t sz)
 {
-	strm.read(data, sz);
+	strm.read(data, static_cast<std::streamsize>(sz));
 }
 
 

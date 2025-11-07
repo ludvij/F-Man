@@ -1,4 +1,4 @@
-#include "internal/pch.hpp"
+// #include "internal/pch.hpp"
 
 #include "FileManager/FileManager.hpp"
 #include "FileManager/Serializable.hpp"
@@ -99,7 +99,7 @@ bool PushFolder(std::initializer_list<fs::path> name, bool create/*= true*/)
  * @param dst ptr to destination cstring
  * @param dst_sz size of destination cstring without null terminator
  */
-static void fman_strncpyn(const char* src, size_t src_sz, char* dst, size_t dst_sz)
+static void fman_strncpyn(const char* src, const size_t src_sz, char* dst, const size_t dst_sz)
 {
 	if(src == nullptr || dst == nullptr)
 	{
@@ -123,10 +123,8 @@ char* AllocateFileName(const char* name)
 
 	char* s = new char[sz + 1]{0};
 
-	if (s)
-	{
-		fman_strncpyn(repr.c_str(), sz, s, sz);
-	}
+	fman_strncpyn(repr.c_str(), sz, s, sz);
+
 	context.allocations.push_back(s);
 
 	return s;
@@ -172,7 +170,7 @@ std::vector<std::filesystem::path> Traverse(const int depth, const TraverseMode 
 	iters.emplace_back(context.current_folder);
 
 	size_t size = 1;
-	while (iters.size() > 0)
+	while (!iters.empty())
 	{
 		fs::directory_iterator it{ iters.front() };
 		iters.pop_front();
@@ -218,7 +216,7 @@ std::string Slurp(const fs::path& path)
 	file.seekg(0, std::ios::beg);
 	
 	char* buffer = new char[size];
-	file.read(buffer, size);
+	file.read(buffer, static_cast<std::streamsize>(size));
 
 	std::string res(buffer, size);
 	delete[] buffer;

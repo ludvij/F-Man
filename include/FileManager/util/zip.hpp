@@ -11,14 +11,8 @@
  * should be a fun exercise to figure that out
  */
 
-#include <cstddef>
 #include <cstdint>
-#include <iostream>
-#include <streambuf>
 #include <vector>
-#include <assert.h>
-
-#include <zlib.h>
 
 namespace Fman::Compression
 {

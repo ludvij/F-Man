@@ -1,4 +1,4 @@
-#include "internal/pch.hpp"
+// #include "internal/pch.hpp"
 
 #include "FileManager/util/zip.hpp"
 
@@ -144,8 +144,8 @@ struct EndOfCentralDirectoryRecord
 	std::string comment{};
 
 	static constexpr uint32_t SIGNATURE = 0x06054b50;
-	static constexpr size_t OFFSET_OFFSET = 16;
-	static constexpr size_t COMMENT_L_OFFSET = 20;
+	static constexpr std::streamoff OFFSET_OFFSET = 16;
+	static constexpr std::streamoff COMMENT_L_OFFSET = 20;
 	static constexpr size_t BASE_SIZE = 22;
 
 	explicit EndOfCentralDirectoryRecord(std::istream& stream)
@@ -203,16 +203,16 @@ constexpr static size_t find_eocd_size(std::istream& stream)
 	// check that the EOCD ends at EOF
 	stream.seekg(0, std::ios::end);
 	const size_t file_size = stream.tellg();
-	const size_t max_eocd_size = 0xFFFF + EndOfCentralDirectoryRecord::BASE_SIZE;
+	constexpr size_t max_eocd_size = 0xFFFF + EndOfCentralDirectoryRecord::BASE_SIZE;
 	const size_t search_size = std::min(max_eocd_size, file_size);
 
 
 	// starts at the end - base EOCD size, iterates until min(max_uint16_t, file_size) + base EOCD size
-	const size_t eocd_size  = EndOfCentralDirectoryRecord::BASE_SIZE;
-	const size_t loop_end   = file_size - search_size;
-	const size_t loop_begin = file_size - eocd_size;
+	constexpr size_t eocd_size  = EndOfCentralDirectoryRecord::BASE_SIZE;
+	const auto loop_end   = static_cast<std::streamoff>(file_size - search_size);
+	const auto loop_begin = static_cast<std::streamoff>(file_size - eocd_size);
 
-	for (size_t i = loop_begin; i >= loop_end; --i)
+	for (std::streamoff i = loop_begin; i >= loop_end; --i)
 	{
 		stream.seekg(i);
 		int signature;
@@ -272,7 +272,7 @@ std::vector<FileInZipData> CreateZipDirectory(std::istream& stream)
 {
 	// get buffer containing possible eocd
 
-	const ptrdiff_t eocd_size = find_eocd_size(stream);
+	const auto eocd_size = static_cast<std::streamoff>(find_eocd_size(stream));
 
 	// first we need to search for the EOCD
 	stream.seekg(-eocd_size, std::ios::end);
