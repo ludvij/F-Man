@@ -12,27 +12,27 @@
  */
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace Fman::Compression
 {
-struct FileInZipData
+
+struct ZippedFileDefinition
 {
-	std::string file_name;
-	uint32_t offset;
-	uint32_t uncompressed_size;
-	uint32_t compressed_size;
-	uint32_t CRC_32;
+    std::string file_name;
+    uint32_t offset;
+    uint32_t uncompressed_size;
+    uint32_t compressed_size;
+    uint32_t CRC_32;
 };
 
 [[nodiscard]]
-std::vector<FileInZipData> CreateZipDirectory(std::istream& stream);
+std::vector<ZippedFileDefinition> CreateZipDirectory(std::istream& stream);
 
 [[nodiscard]]
-std::vector<uint8_t> DecompressZippedFile(const FileInZipData& zipped_file, std::istream& stream);
+std::vector<uint8_t> DecompressZippedFile(const ZippedFileDefinition& zipped_file, std::istream& stream);
 
-}
-
-
+} // namespace Fman::Compression
 
 #endif // !FILE_MANAGER_ZIP_HEADER

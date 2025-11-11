@@ -1,9 +1,9 @@
 #ifndef FILE_MANAGER_SERIALIZABLE_HEADER
 #define FILE_MANAGER_SERIALIZABLE_HEADER
 
+#include <iostream>
 #include <ranges>
 #include <span>
-#include <iostream>
 
 namespace Fman
 {
@@ -14,20 +14,18 @@ namespace Fman
 class ISerializable
 {
 public:
-	virtual ~ISerializable() = default;
-	/**
-	 * @brief Serializes the object to a stream
-	 * @param strm The stream to serialize to
-	 */
-	virtual void Serialize(std::ostream& strm) = 0;
-	/**
-	 * @brief Deserializes the object to a stream
-	 * @param strm The stream to deserialize to
-	 */
-	virtual void Deserialize(std::istream& strm) = 0;
+    virtual ~ISerializable() = default;
+    /**
+     * @brief Serializes the object to a stream
+     * @param strm The stream to serialize to
+     */
+    virtual void Serialize(std::ostream& strm) = 0;
+    /**
+     * @brief Deserializes the object to a stream
+     * @param strm The stream to deserialize to
+     */
+    virtual void Deserialize(std::istream& strm) = 0;
 };
-
-
 
 /**
  * @brief Serializes any serializable to the current serialization file
@@ -46,32 +44,30 @@ void Deserialize(ISerializable* serial);
  */
 void SerializeCompress(ISerializable* serial);
 /**
- * @brief Decompresses the serializable data from the current serialization file and 
+ * @brief Decompresses the serializable data from the current serialization file and
  *        deserializes the serializable
  * @param serial The serializable to be decompressed and deserialized
  */
 void DeserializeDecompress(ISerializable* serial);
 
-
 /**
  * @brief sets the current name of the serialization file
  *        it will be appended to the current pushed folder
- * 
+ *
  * @param name the name of the file
  */
 void SetSerializeFilename(const std::string_view name = "srl.dat");
-
 
 /**
  * @brief Serializes any static type.
  *        Any more complex type should not be serialized this way since this
  *        includes struct padding
- * 
+ *
  * @tparam T the type to be serialized
  * @param strm the stream to serialize to
  * @param t the object to be serialized
  */
-template<typename T> 
+template <typename T>
 void SerializeStatic(std::ostream& strm, const T& t);
 /**
  * @brief Deserializes any static type.
@@ -81,7 +77,7 @@ void SerializeStatic(std::ostream& strm, const T& t);
  * @param strm The stream to deserialize to
  * @param t The object to be deserialized
  */
-template<typename T> 
+template <typename T>
 void DeserializeStatic(std::istream& strm, T& t);
 
 /**
@@ -90,7 +86,7 @@ void DeserializeStatic(std::istream& strm, T& t);
  * @param strm The stream to serialize to
  * @param arr The range to be serialized
  */
-template<typename T> 
+template <typename T>
 void SerializeArrayStoresStatic(std::ostream& strm, const std::span<T> arr);
 /**
  * @brief Deserilizes any viewable, contigous & fixed size range
@@ -98,7 +94,7 @@ void SerializeArrayStoresStatic(std::ostream& strm, const std::span<T> arr);
  * @param strm The stream to deserialize to
  * @param arr The range to be deserialized
  */
-template<typename T> 
+template <typename T>
 void DeserializeArrayStoresStatic(std::istream& strm, std::span<T> arr);
 
 /**
@@ -108,7 +104,7 @@ void DeserializeArrayStoresStatic(std::istream& strm, std::span<T> arr);
  * @param range The range to serialize
  */
 template <std::ranges::contiguous_range R>
-void SerializeContiguousRangeStoresStatic(std::ostream &strm, const R& range);
+void SerializeContiguousRangeStoresStatic(std::ostream& strm, const R& range);
 /**
  * @brief Deserializes any contigous, non-fixed size range that stores static types
  * @tparam R The type of the range
@@ -116,14 +112,12 @@ void SerializeContiguousRangeStoresStatic(std::ostream &strm, const R& range);
  * @param range The range to deserialize
  */
 template <std::ranges::contiguous_range R>
-void DeserializeContiguousRangeStoresStatic(std::istream &strm, R& range);
+void DeserializeContiguousRangeStoresStatic(std::istream& strm, R& range);
 
 template <std::ranges::range R>
-void SerializeDynamicRangeStoresStatic(std::ostream &strm, const R& range);
+void SerializeDynamicRangeStoresStatic(std::ostream& strm, const R& range);
 template <std::ranges::range R>
-void DeserializeDynamicRangeStoresStatic(std::istream &strm, R &range);
-
-
+void DeserializeDynamicRangeStoresStatic(std::istream& strm, R& range);
 
 /**
  * @brief Serializes an std::string
@@ -137,7 +131,6 @@ void SerializeString(std::ostream& strm, const std::string& str);
  * @param str The std::string to be deserialized
  */
 void DeserializeString(std::istream& strm, std::string& str);
-
 
 /**
  * @brief Serializes any raw data
@@ -155,97 +148,90 @@ inline constexpr void SerializeData(std::ostream& strm, const char* data, size_t
  */
 inline constexpr void DeserializeData(std::istream& strm, char* data, size_t sz);
 
-
-
-
-template<typename T>
+template <typename T>
 void SerializeStatic(std::ostream& strm, const T& t)
 {
-	SerializeData(strm, reinterpret_cast<const char*>( &t ), sizeof t);
+    SerializeData(strm, reinterpret_cast<const char*>(&t), sizeof t);
 }
 
-template<typename T>
+template <typename T>
 void DeserializeStatic(std::istream& strm, T& t)
 {
-	DeserializeData(strm, reinterpret_cast<char*>( &t ), sizeof t);
+    DeserializeData(strm, reinterpret_cast<char*>(&t), sizeof t);
 }
 
-
-
-template<typename T>
+template <typename T>
 void SerializeArrayStoresStatic(std::ostream& strm, const std::span<T> arr)
 {
-	SerializeData(strm, reinterpret_cast<const char*>( arr.data() ), sizeof(T) * arr.size());
+    SerializeData(strm, reinterpret_cast<const char*>(arr.data()), sizeof(T) * arr.size());
 }
-template<typename T>
+template <typename T>
 void DeserializeArrayStoresStatic(std::istream& strm, std::span<T> arr)
 {
-	DeserializeData(strm, reinterpret_cast<char*>(arr.data()), sizeof(T) * arr.size());
+    DeserializeData(strm, reinterpret_cast<char*>(arr.data()), sizeof(T) * arr.size());
 }
 
 template <std::ranges::contiguous_range R>
-void SerializeContiguousRangeStoresStatic(std::ostream &strm, const R &range)
+void SerializeContiguousRangeStoresStatic(std::ostream& strm, const R& range)
 {
-	using T = std::ranges::range_value_t<R>;
+    using T = std::ranges::range_value_t<R>;
 
-	const size_t size = std::ranges::size(range) * sizeof(T);
-	SerializeStatic(strm, size);
-	SerializeData(strm, reinterpret_cast<const char*>(range.data()), size);
+    const size_t size = std::ranges::size(range) * sizeof(T);
+    SerializeStatic(strm, size);
+    SerializeData(strm, reinterpret_cast<const char*>(range.data()), size);
 }
 
 template <std::ranges::contiguous_range R>
-void DeserializeContiguousRangeStoresStatic(std::istream &strm, R &range)
+void DeserializeContiguousRangeStoresStatic(std::istream& strm, R& range)
 {
-	using T = std::ranges::range_value_t<R>;
-	size_t size;
-	DeserializeStatic(strm, size);
-	size_t container_size = size / sizeof(T);
-	if (std::ranges::size(range) != container_size)
-	{
-		range.resize(container_size);
-	}
-	DeserializeData(strm, reinterpret_cast<char*>(range.data()), size);
-
+    using T = std::ranges::range_value_t<R>;
+    size_t size;
+    DeserializeStatic(strm, size);
+    size_t container_size = size / sizeof(T);
+    if (std::ranges::size(range) != container_size)
+    {
+        range.resize(container_size);
+    }
+    DeserializeData(strm, reinterpret_cast<char*>(range.data()), size);
 }
 
 template <std::ranges::range R>
-void SerializeDynamicRangeStoresStatic(std::ostream &strm, const R &range)
+void SerializeDynamicRangeStoresStatic(std::ostream& strm, const R& range)
 {
-	using T = std::ranges::range_value_t<R>;
-	const size_t sz = std::ranges::size(range);
-	SerializeStatic(strm, sz);
-	for(auto it = range.begin(); it != range.end(); ++it)
-	{
-		SerializeStatic<T>(strm, *it);
-	}
+    using T = std::ranges::range_value_t<R>;
+    const size_t sz = std::ranges::size(range);
+    SerializeStatic(strm, sz);
+    for (auto it = range.begin(); it != range.end(); ++it)
+    {
+        SerializeStatic<T>(strm, *it);
+    }
 }
 
 template <std::ranges::range R>
-void DeserializeDynamicRangeStoresStatic(std::istream &strm, R &range)
+void DeserializeDynamicRangeStoresStatic(std::istream& strm, R& range)
 {
-	using T = std::ranges::range_value_t<R>;
-	size_t sz;
-	DeserializeStatic(strm, sz);
-	range.clear();
-	for(size_t i = 0; i < sz; i++)
-	{
-		T data;
-		DeserializeStatic<T>(strm, data);
-		range.insert(range.end(), data);
-	}
+    using T = std::ranges::range_value_t<R>;
+    size_t sz;
+    DeserializeStatic(strm, sz);
+    range.clear();
+    for (size_t i = 0; i < sz; i++)
+    {
+        T data;
+        DeserializeStatic<T>(strm, data);
+        range.insert(range.end(), data);
+    }
 }
 
-inline constexpr void SerializeData(std::ostream &strm, const char *data, const size_t sz)
+inline constexpr void SerializeData(std::ostream& strm, const char* data, const size_t sz)
 {
-	strm.write(data, static_cast<std::streamsize>(sz));
+    strm.write(data, static_cast<std::streamsize>(sz));
 }
 
 inline constexpr void DeserializeData(std::istream& strm, char* data, const size_t sz)
 {
-	strm.read(data, static_cast<std::streamsize>(sz));
+    strm.read(data, static_cast<std::streamsize>(sz));
 }
 
-
-}
+} // namespace Fman
 
 #endif

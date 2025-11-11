@@ -1,16 +1,12 @@
 #ifndef FILE_MANAGER_HEADER
 #define FILE_MANAGER_HEADER
 
-#include "Serializable.hpp"
-#include "util/compression_streams.hpp"
-
 #include <filesystem>
+#include <iostream>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <optional>
-
-
 
 namespace Fman
 {
@@ -18,26 +14,25 @@ namespace Fman
 namespace mode
 {
 
-constexpr int read   = std::ios::in;
-constexpr int write  = std::ios::out;
-constexpr int end    = std::ios::ate;
+constexpr int read = std::ios::in;
+constexpr int write = std::ios::out;
+constexpr int end = std::ios::ate;
 constexpr int append = std::ios::app;
 constexpr int binary = std::ios::binary;
 
-}
+} // namespace mode
 
 namespace traverse
 {
-constexpr uint8_t files   = 0x01;
+constexpr uint8_t files = 0x01;
 constexpr uint8_t folders = 0x02;
-constexpr uint8_t all     = 0xFF;
-}
+constexpr uint8_t all = 0xFF;
+} // namespace traverse
 
 constexpr int FULL = -1;
 
 using OpenMode = int;
 using TraverseMode = uint8_t;
-
 
 /**
  * @brief Get the Current pushed path
@@ -61,7 +56,7 @@ std::filesystem::path GetRoot();
  * @return true if folder was created
  * @return false if folder exists
  */
-bool SetRoot(const std::filesystem::path& path={});
+bool SetRoot(const std::filesystem::path& path = {});
 
 bool SetRootToKnownPath(const std::string& name);
 
@@ -76,7 +71,6 @@ bool SetRootToKnownPath(const std::string& name);
  */
 bool PushFolder(const std::filesystem::path& name, bool create = true);
 
-
 /**
  * @brief Pushes multiple folders
  * @param names list of folders
@@ -85,7 +79,6 @@ bool PushFolder(const std::filesystem::path& name, bool create = true);
  * @return false if all folders were not entered
  */
 bool PushFolder(std::initializer_list<std::filesystem::path> names, bool create = true);
-
 
 /**
  * @brief Allocates and returns file name in current
@@ -99,13 +92,12 @@ bool PushFolder(std::initializer_list<std::filesystem::path> names, bool create 
 char* AllocateFileName(const char* name);
 
 /**
- * @brief goes back to previous folder 
+ * @brief goes back to previous folder
  *
  * @param amount the number of folders to go back
  *               if < 0 then all folders will be popped
  */
-void PopFolder(int amount=1);
-
+void PopFolder(int amount = 1);
 
 /**
  * @brief Opens a file
@@ -115,9 +107,7 @@ void PopFolder(int amount=1);
  *
  * @return file stream of opened file if file is opened or std::nullopt in case of fail
  */
-std::optional<std::fstream> PushFile(const std::filesystem::path& name, OpenMode mode=mode::write | mode::append);
-
-
+std::optional<std::fstream> PushFile(const std::filesystem::path& name, OpenMode mode = mode::write | mode::append);
 
 /** A
  * @fn Traverse
@@ -136,7 +126,6 @@ std::optional<std::fstream> PushFile(const std::filesystem::path& name, OpenMode
  */
 std::vector<std::filesystem::path> Traverse(int depth = 1, TraverseMode trav_mode = traverse::all, std::initializer_list<std::string_view> filters = {});
 
-
 /**
  * @brief returns whole file as a single string
  * @param path the path to the file
@@ -144,5 +133,5 @@ std::vector<std::filesystem::path> Traverse(int depth = 1, TraverseMode trav_mod
  */
 std::string Slurp(const std::filesystem::path& path);
 
-}
+} // namespace Fman
 #endif

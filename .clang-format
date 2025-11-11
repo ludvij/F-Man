@@ -1,0 +1,48 @@
+UseTab: AlignWithSpaces
+IndentWidth: 4
+
+InsertBraces: true
+BreakBeforeBraces: Allman
+
+PointerAlignment: Left
+
+AlignAfterOpenBracket: true
+AlignArrayOfStructures: Left
+
+# AlignConsecutiveAssignments: Consecutive
+
+SpaceBeforeAssignmentOperators: true
+
+SpaceBeforeCaseColon: false
+
+BitFieldColonSpacing: Both
+AlignConsecutiveBitFields:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: true
+
+AllowShortBlocksOnASingleLine: Never
+AllowShortEnumsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: Inline
+AllowShortLoopsOnASingleLine: false
+
+BinPackArguments: true
+# BinPackParameters: OnePerLine
+
+NamespaceIndentation: None
+CompactNamespaces: false
+# AllowShortNamespacesOnASingleLine: false
+AccessModifierOffset: -4
+EmptyLineAfterAccessModifier: Leave
+EmptyLineBeforeAccessModifier: LogicalBlock
+
+IndentPPDirectives: BeforeHash
+
+InsertNewlineAtEOF: true
+
+QualifierAlignment: Left
+
+ReferenceAlignment: Left
+
+ColumnLimit: 0

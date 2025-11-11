@@ -5,6 +5,8 @@ project(Fman)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 option(FMAN_TESTS "Enable tests project" OFF)
 
 
@@ -46,12 +48,14 @@ set(SOURCES
 	src/FileManager.cpp
 	src/Serializable.cpp
 
-	include/FileManager/util/compression_streams.hpp
-	src/util/compression_streams.cpp
+	include/FileManager/util/CompressionStreams.hpp
+	src/util/CompressionStreams.cpp
 
-	include/FileManager/util/zip.hpp
-	src/util/zip.cpp
+	include/FileManager/util/Unzip.hpp
+	src/util/Unzip.cpp
 
+	include/FileManager/vfs/Vfs.hpp
+	src/vfs/Vfs.cpp
 )
 
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
@@ -80,7 +84,6 @@ else()
 	message(SEND_ERROR "platform ${CMAKE_SYSTEM_NAME} is not supported")
 endif()
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE CMAKE_EXPORT_COMPILE_COMMANDS=1)
 
 if (FMAN_TESTS)
 

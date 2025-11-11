@@ -6,7 +6,7 @@
 #include <random>
 #include <array>
 
-#include "FileManager/util/compression_streams.hpp"
+#include "FileManager/util/CompressionStreams.hpp"
 
 using namespace Fman::Compression;
 
@@ -30,14 +30,14 @@ struct SimpleSerialization : public Fman::ISerializable
 		X(data_double, Static) \
 		X(data_size, Static) \
 
-	virtual void Serialize(std::ostream& stream) override
+	void Serialize(std::ostream& stream) override
 	{
 		#define X(member, type) Fman::Serialize##type(stream, member);
 		CLASS_MEMBERS;
 		#undef X
 	}
 
-	virtual void Deserialize(std::istream& stream) override
+	void Deserialize(std::istream& stream) override
 	{
 		#define X(member, type) Fman::Deserialize##type(stream, member);
 		CLASS_MEMBERS;
@@ -62,14 +62,14 @@ struct BigSerializable : public Fman::ISerializable
 		X(block_3, ContiguousRangeStoresStatic) \
 		X(end, String)
 
-	virtual void Serialize(std::ostream& stream) override
+	void Serialize(std::ostream& stream) override
 	{
 		#define X(member, type) Fman::Serialize##type(stream, member);
 		CLASS_MEMBERS;
 		#undef X
 	}
 
-	virtual void Deserialize(std::istream& stream) override
+	void Deserialize(std::istream& stream) override
 	{
 		#define X(member, type) Fman::Deserialize##type(stream, member);
 		CLASS_MEMBERS;
@@ -81,19 +81,19 @@ struct BigSerializable : public Fman::ISerializable
 
 struct BiggerThanBlockSize : public Fman::ISerializable
 {
-	std::array<uint8_t, CHUNK_SIZE * 4> test;
+	std::array<uint8_t, CHUNK_SIZE * 4UL> test;
 
 	#define CLASS_MEMBERS \
 		X(test, ArrayStoresStatic<uint8_t>)
 		
-	virtual void Serialize(std::ostream& stream) override
+	void Serialize(std::ostream& stream) override
 	{
 		#define X(member, type) Fman::Serialize##type(stream, member);
 		CLASS_MEMBERS;
 		#undef X
 	}
 
-	virtual void Deserialize(std::istream& stream) override
+	void Deserialize(std::istream& stream) override
 	{
 		#define X(member, type) Fman::Deserialize##type(stream, member);
 		CLASS_MEMBERS;

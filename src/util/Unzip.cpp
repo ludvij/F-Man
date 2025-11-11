@@ -1,11 +1,11 @@
 // #include "internal/pch.hpp"
 
-#include "FileManager/util/zip.hpp"
+#include "FileManager/util/Unzip.hpp"
 
-#include "FileManager/util/compression_streams.hpp"
+#include "FileManager/util/CompressionStreams.hpp"
 
-#define READ_BINARY_PTR(stream, ptr, sz) stream.read(reinterpret_cast<char*>(ptr), sz)
-#define READ_BINARY(stream, var) READ_BINARY_PTR(stream, &var, sizeof var)
+#define READ_BINARY_PTR(stream, ptr, sz) stream.read(reinterpret_cast<char*>(ptr), (sz))
+#define READ_BINARY(stream, var) READ_BINARY_PTR((stream), &(var), sizeof (var))
 
 namespace Fman::Compression
 {
@@ -245,7 +245,7 @@ constexpr static size_t find_eocd_size(std::istream& stream)
 }
 
 
-std::vector<uint8_t> DecompressZippedFile(const FileInZipData& zipped_file, std::istream& stream)
+std::vector<uint8_t> DecompressZippedFile(const ZippedFileDefinition& zipped_file, std::istream& stream)
 {
 	std::vector<uint8_t> out_buffer(zipped_file.uncompressed_size);
 
@@ -268,7 +268,7 @@ std::vector<uint8_t> DecompressZippedFile(const FileInZipData& zipped_file, std:
 }
 
 
-std::vector<FileInZipData> CreateZipDirectory(std::istream& stream)
+std::vector<ZippedFileDefinition> CreateZipDirectory(std::istream& stream)
 {
 	// get buffer containing possible eocd
 
@@ -281,12 +281,16 @@ std::vector<FileInZipData> CreateZipDirectory(std::istream& stream)
 	// obtain central directory records
 	stream.seekg(eocd.offset);
 	const int cd_amount = eocd.directory_record_number;
-	std::vector<FileInZipData> compressed_files_data;
+	std::vector<ZippedFileDefinition> compressed_files_data;
 	compressed_files_data.reserve(cd_amount);
 
 	for (int i = 0; i < cd_amount; i++)
 	{
 		auto header = CentralDirectoryHeader(stream);
+		if (header.file_name.ends_with("/"))
+		{
+			continue;
+		}
 		compressed_files_data.emplace_back(
 			header.file_name,
 			header.offset,
