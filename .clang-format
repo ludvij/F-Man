@@ -1,4 +1,3 @@
-UseTab: AlignWithSpaces
 IndentWidth: 4
 
 InsertBraces: true
@@ -16,10 +15,7 @@ SpaceBeforeAssignmentOperators: true
 SpaceBeforeCaseColon: false
 
 BitFieldColonSpacing: Both
-AlignConsecutiveBitFields:
-  Enabled: true
-  AcrossEmptyLines: true
-  AcrossComments: true
+AlignConsecutiveBitFields: AcrossEmptyLinesAndComments
 
 AllowShortBlocksOnASingleLine: Never
 AllowShortEnumsOnASingleLine: false
@@ -44,5 +40,7 @@ InsertNewlineAtEOF: true
 QualifierAlignment: Left
 
 ReferenceAlignment: Left
+
+BreakConstructorInitializers: BeforeComma
 
 ColumnLimit: 0

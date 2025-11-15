@@ -4,7 +4,12 @@
 #include "FileManager/Serializable.hpp"
 #include "FileManager/util/CompressionStreams.hpp"
 
+#include <cstddef>
+#include <ios>
+#include <istream>
 #include <ludutils/lud_assert.hpp>
+#include <memory>
+#include <system_error>
 
 namespace fs = std::filesystem;
 namespace ranges = std::ranges;
@@ -39,7 +44,14 @@ bool SetRoot(const fs::path& name)
         context.root = context.current_folder = name;
         context.folders.clear();
 
-        return fs::create_directories(context.root);
+        std::error_code ec;
+        fs::create_directories(context.root, ec);
+        if (ec)
+        {
+            // should an exception be thrown here?
+            return false;
+        }
+        return true;
     }
 }
 
@@ -61,7 +73,13 @@ bool PushFolder(const fs::path& name, bool create /*= true*/)
         context.current_folder /= name;
         context.folders.emplace_back(fs::absolute(context.current_folder));
 
-        fs::create_directories(context.current_folder);
+        std::error_code ec;
+        fs::create_directories(context.current_folder, ec);
+        if (ec)
+        {
+            // should an exception be thrown here?
+            return false;
+        }
     }
     else
     {
@@ -143,16 +161,16 @@ void PopFolder(int amount)
     context.current_folder = context.folders.back();
 }
 
-std::optional<std::fstream> PushFile(const fs::path& name, OpenMode mode)
+std::shared_ptr<std::fstream> PushFile(const fs::path& name, OpenMode mode)
 {
     fs::path path = context.current_folder;
     path.append(name.string());
     if (!fs::exists(path) && (mode & mode::read))
     {
-        return std::nullopt;
+        return nullptr;
     }
 
-    return std::fstream{path, static_cast<std::ios_base::openmode>(mode)};
+    return std::make_shared<std::fstream>(path, static_cast<std::ios_base::openmode>(mode));
 }
 
 std::vector<std::filesystem::path> Traverse(const int depth, const TraverseMode trav_mode, const std::initializer_list<std::string_view> filters)
@@ -207,21 +225,33 @@ std::vector<std::filesystem::path> Traverse(const int depth, const TraverseMode 
 
 std::string Slurp(const fs::path& path)
 {
-    auto file_opt = PushFile(path, mode::read | mode::end);
-    if (!file_opt.has_value())
-    {
-        return {};
-    }
+    auto file = PushFile(path, mode::read | mode::end);
+    Lud::check::that(file != nullptr, "File was not found");
+    Lud::check::that(file->is_open(), "Could not open file");
 
-    auto& file = file_opt.value();
-    const size_t size = file.tellg();
-    file.seekg(0, std::ios::beg);
+    file->seekg(0, std::ios::end);
+    auto size = file->tellg();
+    file->seekg(0, std::ios::beg);
 
-    char* buffer = new char[size];
-    file.read(buffer, static_cast<std::streamsize>(size));
+    std::string res;
+    res.resize(size);
 
-    std::string res(buffer, size);
-    delete[] buffer;
+    file->read(res.data(), size);
+
+    return res;
+}
+
+std::string Slurp(std::istream& stream)
+{
+    const std::streamsize current_pos = stream.tellg();
+    stream.seekg(0, std::ios::end);
+    const std::streamsize size = stream.tellg();
+    stream.seekg(current_pos, std::ios::beg);
+
+    std::string res;
+    res.resize(size);
+
+    stream.read(res.data(), size);
 
     return res;
 }
@@ -229,42 +259,36 @@ std::string Slurp(const fs::path& path)
 void Serialize(ISerializable* serial)
 {
     auto file = PushFile(context.serialize_filename, mode::binary | mode::write);
-    if (!file)
-    {
-        // idk
-    }
-    serial->Serialize(file.value());
+    Lud::check::that(file->is_open(), "Could not open serialization file");
+
+    serial->Serialize(*file);
 }
 
 void Deserialize(ISerializable* serial)
 {
     auto file = PushFile(context.serialize_filename, mode::binary | mode::read);
-    if (!file)
-    {
-        // idk
-    }
-    serial->Deserialize(file.value());
+    Lud::check::that(file != nullptr, "Deserialization file was not found");
+    Lud::check::that(file->is_open(), "Could not open deserialization file");
+
+    serial->Deserialize(*file);
 }
 
 void SerializeCompress(ISerializable* serial)
 {
     auto file = PushFile(context.serialize_filename, mode::binary | mode::write);
-    if (!file)
-    {
-        // idk
-    }
-    CompressionOstream deflate_ostream(file.value());
+    Lud::check::that(file->is_open(), "Could not open serialization file");
+
+    CompressionOstream deflate_ostream(*file);
     serial->Serialize(deflate_ostream);
 }
 
 void DeserializeDecompress(ISerializable* serial)
 {
     auto file = PushFile(context.serialize_filename, mode::binary | mode::read);
-    if (!file)
-    {
-        // idk
-    }
-    DecompressionIstream inflate_istream(file.value());
+    Lud::check::that(file != nullptr, "Deserialization file was not found");
+    Lud::check::that(file->is_open(), "Could not open deserialization file");
+
+    DecompressionIstream inflate_istream(*file);
     serial->Deserialize(inflate_istream);
 }
 
@@ -272,5 +296,37 @@ void SetSerializeFilename(const std::string_view name)
 {
     context.serialize_filename = name;
 }
+
+std::filesystem::path GetFromCurrent(const std::filesystem::path& path)
+{
+    return GetCurrent() / path;
+}
+
+namespace Resources
+{
+std::shared_ptr<std::istream> Get(const std::string_view path)
+{
+#ifndef FMAN_EMBED_RESOURCES
+    auto file = context.resources.Get(path);
+    Lud::check::that(file != nullptr, "Resource was not found");
+#else
+    Lud::check::that(Fman::PushFolder(Fman::GetRoot(), false), "Resources folder was not found");
+    auto file = Fman::PushFile(path, mode::read);
+    Fman::PopFolder();
+
+    Lud::check::that(file != nullptr, "Resource was not found");
+    Lud::check::that(file->is_open(), "Could not open file");
+#endif
+    return file;
+}
+
+std::string GetAsString(const std::string_view path)
+{
+    auto file = Resources::Get(path);
+
+    return Fman::Slurp(*file);
+}
+
+} // namespace Resources
 
 } // namespace Fman

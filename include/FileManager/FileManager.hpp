@@ -2,7 +2,9 @@
 #define FILE_MANAGER_HEADER
 
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -58,10 +60,17 @@ std::filesystem::path GetRoot();
  */
 bool SetRoot(const std::filesystem::path& path = {});
 
+/**
+ * @brief Set the root to a known path
+ *
+ * @param name the name of the knonw path
+ * @return true If the root was set correctly
+ * @return false If the root was not set correctly
+ */
 bool SetRootToKnownPath(const std::string& name);
 
 /**
- * @brief Pushes a nes folder on top of current
+ * @brief Pushes a new folder on top of current
  *
  * @param name new folder name, will be appended to the current one
  * @param create true if create folder if not exists
@@ -70,6 +79,14 @@ bool SetRootToKnownPath(const std::string& name);
  * @return false if folder was not entered
  */
 bool PushFolder(const std::filesystem::path& name, bool create = true);
+
+/**
+ * @brief Returns a path appended to the current path
+ *
+ * @param path The path to append
+ * @return std::filesystem::path resulting path
+ */
+std::filesystem::path GetFromCurrent(const std::filesystem::path& path);
 
 /**
  * @brief Pushes multiple folders
@@ -105,9 +122,9 @@ void PopFolder(int amount = 1);
  * @param name name of the file to be created
  * @param mode open mode of file
  *
- * @return file stream of opened file if file is opened or std::nullopt in case of fail
+ * @return ptr to file stream of opened file if file is opened or std::nullopt in case of fail
  */
-std::optional<std::fstream> PushFile(const std::filesystem::path& name, OpenMode mode = mode::write | mode::append);
+std::shared_ptr<std::fstream> PushFile(const std::filesystem::path& name, OpenMode mode = mode::write | mode::append);
 
 /** A
  * @fn Traverse
@@ -129,9 +146,37 @@ std::vector<std::filesystem::path> Traverse(int depth = 1, TraverseMode trav_mod
 /**
  * @brief returns whole file as a single string
  * @param path the path to the file
- * @return string containing file contents
+ * @return string containing file
  */
 std::string Slurp(const std::filesystem::path& path);
+
+/**
+ * @brief returns whole file as a single string
+ *
+ * @param stream the stream of the file
+ * @return std::string containg file
+ */
+std::string Slurp(std::istream& stream);
+
+namespace Resources
+{
+/**
+ * @brief Obtains a stream to a resourece
+ *
+ * @param path The path of the resource
+ * @return std::shared_ptr<std::istream> smart pointer containing file
+ */
+std::shared_ptr<std::istream> Get(const std::string_view path);
+
+/**
+ * @brief Obtains a resource as a string
+ *
+ * @param path the path of the resource
+ * @return std::string the resource as a string
+ */
+std::string GetAsString(const std::string_view path);
+
+} // namespace Resources
 
 } // namespace Fman
 #endif

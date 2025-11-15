@@ -8,7 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(FMAN_TESTS "Enable tests project" OFF)
-
+set(FMAN_PREFERRED_SEPARATOR "/")
+set(FMAN_RESOURCES_PATH "resources/")
 
 SET(ZLIB_USE_STATIC_LIBS ON)
 SET(ZLIB_BUILD_EXAMPLES OFF)
@@ -57,7 +58,9 @@ set(SOURCES
 	include/FileManager/vfs/Vfs.hpp
 	src/vfs/Vfs.cpp
 )
-
+target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_PREFERRED_SEPARATOR="${FMAN_PREFERRED_SEPARATOR}")
+target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_RESOURCES_PATH="${FMAN_RESOURCES_PATH}")
+target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_EMBED_RESOURCES)
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
 
 target_include_directories(${PROJECT_NAME}
@@ -101,6 +104,7 @@ if (FMAN_TESTS)
 	add_executable(FMAN_TESTS)
 	target_sources(FMAN_TESTS PRIVATE
 		${fman_test_dir}/test_serialization.cpp
+		${fman_test_dir}/test_vfs.cpp
 	)
 
 	target_link_libraries(FMAN_TESTS
