@@ -4,8 +4,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <ludutils/lud_assert.hpp>
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -26,15 +26,26 @@ constexpr int binary = std::ios::binary;
 
 namespace traverse
 {
+
 constexpr uint8_t files = 0x01;
 constexpr uint8_t folders = 0x02;
 constexpr uint8_t all = 0xFF;
+
 } // namespace traverse
 
 constexpr int FULL = -1;
 
 using OpenMode = int;
 using TraverseMode = uint8_t;
+
+template <typename T>
+concept GrowableContiguosRange = requires(T range) {
+    { std::ranges::contiguous_range<T> };
+    { sizeof(std::ranges::range_value_t<T>) == 1 };
+    { range.data() } -> std::same_as<std::ranges::range_value_t<T>*>;
+    { range.resize(size_t()) } -> std::same_as<void>;
+    { range.reserve(size_t()) } -> std::same_as<void>;
+};
 
 /**
  * @brief Get the Current pushed path
@@ -145,18 +156,41 @@ std::vector<std::filesystem::path> Traverse(int depth = 1, TraverseMode trav_mod
 
 /**
  * @brief returns whole file as a single string
- * @param path the path to the file
- * @return string containing file
- */
-std::string Slurp(const std::filesystem::path& path);
-
-/**
- * @brief returns whole file as a single string
  *
+ * @tparam GrowableContigousRange a growable contigous range
  * @param stream the stream of the file
  * @return std::string containg file
  */
-std::string Slurp(std::istream& stream);
+template <GrowableContiguosRange Rng = std::string>
+Rng Slurp(std::istream& stream)
+{
+    const std::streamsize current_pos = stream.tellg();
+    stream.seekg(0, std::ios::end);
+    const std::streamsize size = stream.tellg();
+    stream.seekg(current_pos, std::ios::beg);
+
+    Rng res;
+    res.resize(size);
+
+    stream.read(reinterpret_cast<char*>(res.data()), size);
+
+    return res;
+}
+
+/**
+
+ * @brief returns whole file as a single string
+ *
+ * @tparam GrowableContigousRange a growable contigous range
+ * @param path the path to the file
+ * @return string containing file
+ */
+template <GrowableContiguosRange Rng = std::string>
+Rng Slurp(const std::filesystem::path& path)
+{
+    auto file = PushFile(path, mode::read | mode::end);
+    return Slurp<Rng>(*file);
+}
 
 namespace Resources
 {
@@ -166,15 +200,22 @@ namespace Resources
  * @param path The path of the resource
  * @return std::shared_ptr<std::istream> smart pointer containing file
  */
-std::shared_ptr<std::istream> Get(const std::string_view path);
+std::shared_ptr<std::istream> Push(const std::string_view path);
 
 /**
  * @brief Obtains a resource as a string
  *
+ * @tparam GrowableContigousRange a growable contigous range
  * @param path the path of the resource
  * @return std::string the resource as a string
  */
-std::string GetAsString(const std::string_view path);
+template <GrowableContiguosRange Rng = std::string>
+Rng Slurp(const std::string_view path)
+{
+    auto file = Resources::Push(path);
+
+    return Fman::Slurp<Rng>(*file);
+}
 
 } // namespace Resources
 

@@ -223,39 +223,6 @@ std::vector<std::filesystem::path> Traverse(const int depth, const TraverseMode 
     return result;
 }
 
-std::string Slurp(const fs::path& path)
-{
-    auto file = PushFile(path, mode::read | mode::end);
-    Lud::check::that(file != nullptr, "File was not found");
-    Lud::check::that(file->is_open(), "Could not open file");
-
-    file->seekg(0, std::ios::end);
-    auto size = file->tellg();
-    file->seekg(0, std::ios::beg);
-
-    std::string res;
-    res.resize(size);
-
-    file->read(res.data(), size);
-
-    return res;
-}
-
-std::string Slurp(std::istream& stream)
-{
-    const std::streamsize current_pos = stream.tellg();
-    stream.seekg(0, std::ios::end);
-    const std::streamsize size = stream.tellg();
-    stream.seekg(current_pos, std::ios::beg);
-
-    std::string res;
-    res.resize(size);
-
-    stream.read(res.data(), size);
-
-    return res;
-}
-
 void Serialize(ISerializable* serial)
 {
     auto file = PushFile(context.serialize_filename, mode::binary | mode::write);
@@ -304,7 +271,7 @@ std::filesystem::path GetFromCurrent(const std::filesystem::path& path)
 
 namespace Resources
 {
-std::shared_ptr<std::istream> Get(const std::string_view path)
+std::shared_ptr<std::istream> Push(const std::string_view path)
 {
 #ifndef FMAN_EMBED_RESOURCES
     auto file = context.resources.Get(path);
@@ -318,13 +285,6 @@ std::shared_ptr<std::istream> Get(const std::string_view path)
     Lud::check::that(file->is_open(), "Could not open file");
 #endif
     return file;
-}
-
-std::string GetAsString(const std::string_view path)
-{
-    auto file = Resources::Get(path);
-
-    return Fman::Slurp(*file);
 }
 
 } // namespace Resources

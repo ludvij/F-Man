@@ -8,6 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(FMAN_TESTS "Enable tests project" OFF)
+option(FMAN_DO_CRC32 "Check crc32 on unzip" ON)
+option(FMAN_EMBED_RESOURCES "Embed resources as a zip file in source" OFF)
+
 set(FMAN_PREFERRED_SEPARATOR "/")
 set(FMAN_RESOURCES_PATH "resources/")
 
@@ -59,8 +62,19 @@ set(SOURCES
 	src/vfs/Vfs.cpp
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_PREFERRED_SEPARATOR="${FMAN_PREFERRED_SEPARATOR}")
-target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_RESOURCES_PATH="${FMAN_RESOURCES_PATH}")
 target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_EMBED_RESOURCES)
+
+if(FMAN_DO_CRC_32)
+	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_DO_CRC_32)
+endif()
+
+if(FMAN_EMBED_RESOURCES)
+	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_EMBED_RESOURCES)
+	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_RESOURCES_PATH)
+else()
+	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_RESOURCES_PATH="${FMAN_RESOURCES_PATH}")
+endif()
+
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
 
 target_include_directories(${PROJECT_NAME}
@@ -105,6 +119,8 @@ if (FMAN_TESTS)
 	target_sources(FMAN_TESTS PRIVATE
 		${fman_test_dir}/test_serialization.cpp
 		${fman_test_dir}/test_vfs.cpp
+		${fman_test_dir}/test_unzip.cpp
+		${fman_test_dir}/test_zip_file.cpp
 	)
 
 	target_link_libraries(FMAN_TESTS

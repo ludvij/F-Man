@@ -51,7 +51,7 @@ TEST_CASE("VFS - Add", "[Fman][vfs]")
 
         auto file = vfs.Get("this/is/a/test");
 
-        REQUIRE(Fman::Slurp(*file) == expected);
+        REQUIRE(Fman::Slurp<std::string>(*file) == expected);
     }
 
     SECTION("Add moves")
@@ -65,7 +65,7 @@ TEST_CASE("VFS - Add", "[Fman][vfs]")
 
         auto file = vfs.Get("this/is/a/test");
 
-        REQUIRE(Fman::Slurp(*file) == expected);
+        REQUIRE(Fman::Slurp<std::string>(*file) == expected);
     }
 }
 

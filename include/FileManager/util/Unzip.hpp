@@ -3,7 +3,6 @@
 
 /**
  * ZIP64 not supported right now
- * CRC-32 not supported right now
  * Encryption not supported right now
  * File attributes not supported right now
  *
@@ -11,12 +10,12 @@
  * should be a fun exercise to figure that out
  */
 
+#include "FileManager/FileManager.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>
 
-namespace Fman::Compression
-{
+namespace Fman::Compression {
 
 struct ZippedFileDefinition
 {
@@ -27,11 +26,52 @@ struct ZippedFileDefinition
     uint32_t CRC_32;
 };
 
+/**
+ * @brief Creates a vector containing all directory entries contained in the zip file
+ *
+ * @param stream a stream to the zip file
+ * @return std::vector<ZippedFileDefinition> vector containing directory entries
+ */
 [[nodiscard]]
 std::vector<ZippedFileDefinition> CreateZipDirectory(std::istream& stream);
 
+/**
+ * @brief Decompresses an entry in the zip file
+ *
+ * @tparam Rng a growable contiguous range
+ * @param zipped_file a zipped file definition @ref CreateZipDirectory "obtained here"
+ * @param stream a stream to the zip file
+ * @return Rng resulting range
+ */
+template <GrowableContiguosRange Rng = std::vector<uint8_t>>
 [[nodiscard]]
-std::vector<uint8_t> DecompressZippedFile(const ZippedFileDefinition& zipped_file, std::istream& stream);
+Rng DecompressZippedFile(const ZippedFileDefinition& zipped_file, std::istream& stream);
+
+
+
+
+
+
+
+
+
+
+namespace _impl_ {
+void decompress_zipped_file_impl(const ZippedFileDefinition& zipped_file, std::istream& stream, uint8_t* data);
+}
+
+template <GrowableContiguosRange Rng>
+Rng DecompressZippedFile(const ZippedFileDefinition& zipped_file, std::istream& stream)
+{
+    Rng result;
+    result.resize(zipped_file.uncompressed_size);
+
+    stream.seekg(zipped_file.offset, std::ios::beg);
+
+    _impl_::decompress_zipped_file_impl(zipped_file, stream, reinterpret_cast<uint8_t*>(result.data()));
+
+    return result;
+}
 
 } // namespace Fman::Compression
 

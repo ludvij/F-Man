@@ -11,7 +11,6 @@
 #include <ludutils/lud_parse.hpp>
 #include <memory>
 #include <ranges>
-#include <stdexcept>
 #include <utility>
 #include <variant>
 
@@ -33,12 +32,13 @@ size_t VTree::LoadFrom(const fs::path& path)
     }
     Fman::PushFolder(fs::absolute(path));
     auto paths = Fman::Traverse(Fman::FULL);
-    size_t size = 0;
+    Fman::PopFolder();
+    size_t elems = 0;
     for (const auto& elem : paths)
     {
         if (fs::is_directory(elem))
         {
-            VTree::Add(elem.string());
+            elems += VTree::Add(elem.string());
         }
         else
         {
@@ -54,12 +54,10 @@ size_t VTree::LoadFrom(const fs::path& path)
 
                 return vec;
             };
-            VTree::Add(elem.string(), slurp(elem));
+            elems += VTree::Add(elem.string(), slurp(elem));
         }
-        size++;
     }
-    Fman::PopFolder();
-    return size;
+    return elems;
 }
 
 size_t VTree::LoadZip(std::istream& stream)
@@ -73,13 +71,12 @@ size_t VTree::LoadZip(std::istream& stream)
         // just a folder
         if (entry.file_name.ends_with(FMAN_PREFERRED_SEPARATOR))
         {
-            VTree::Add(entry.file_name);
+            elems += VTree::Add(entry.file_name);
         }
         else
         {
-            VTree::Add(entry.file_name, DecompressZippedFile(entry, stream));
+            elems += VTree::Add(entry.file_name, DecompressZippedFile(entry, stream));
         }
-        elems++;
     }
     return elems;
 }
@@ -142,14 +139,15 @@ bool VTree::Contains(const std::string_view path) const
     const Node* last = &m_root;
     for (const auto& part : parts)
     {
-        if (const auto it = last->children.find(part); it != last->children.end())
+        const auto it = last->children.find(part);
+        if (it == last->children.end())
         {
-            if (last = std::get_if<Node>(&it->second); last != nullptr)
-            {
-                continue;
-            }
+            return false;
         }
-        return false;
+        if (last = std::get_if<Node>(&it->second); last == nullptr)
+        {
+            return false;
+        }
     }
     return true;
 }
@@ -165,14 +163,15 @@ bool VTree::Remove(const std::string_view path)
     Node* last = &m_root;
     for (const auto& part : parts | std::views::take(parts.size() - 1))
     {
-        if (const auto var = last->children.find(part); var != last->children.end())
+        const auto it = last->children.find(part);
+        if (it == last->children.end())
         {
-            if (last = std::get_if<Node>(&var->second); last != nullptr)
-            {
-                continue;
-            }
+            return false;
         }
-        return false;
+        if (last = std::get_if<Node>(&it->second); last == nullptr)
+        {
+            return false;
+        }
     }
 
     return last->children.erase(parts.back()) != 0;
@@ -189,26 +188,29 @@ std::shared_ptr<std::istream> VTree::Get(const std::string_view path)
     Node* last = &m_root;
     for (const auto& part : parts | std::views::take(parts.size() - 1))
     {
-        if (const auto it = last->children.find(part); it != last->children.end())
+        const auto it = last->children.find(part);
+        if (it == last->children.end())
         {
-            if (last = std::get_if<Node>(&it->second); last != nullptr)
-            {
-                continue;
-            }
+            return nullptr;
         }
-        return nullptr;
+        if (last = std::get_if<Node>(&it->second); last == nullptr)
+        {
+            return nullptr;
+        }
     }
+    // last iteration outside of the loop, I would love to do it inside,
+    // as this is very ugly, but hey, it works!
     const auto it = last->children.find(parts.back());
     if (it == last->children.end())
     {
         return nullptr;
     }
-    const auto file = std::get_if<VFile>(&it->second);
-    if (file == nullptr)
+    auto vfile = std::get_if<VFile>(&it->second);
+    if (vfile == nullptr)
     {
         return nullptr;
     }
-    return std::make_shared<Lud::memory_istream<uint8_t>>(file->data);
+    return std::make_shared<Lud::memory_istream<uint8_t>>(vfile->data);
 }
 
 VTree::VFile::VFile(std::vector<uint8_t>&& vec_data)

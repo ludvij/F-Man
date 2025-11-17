@@ -3,12 +3,12 @@
 #include "FileManager/util/Unzip.hpp"
 
 #include "FileManager/util/CompressionStreams.hpp"
+#include "zlib.h"
 
 #define READ_BINARY_PTR(stream, ptr, sz) stream.read(reinterpret_cast<char*>(ptr), (sz))
 #define READ_BINARY(stream, var) READ_BINARY_PTR((stream), &(var), sizeof(var))
 
-namespace Fman::Compression
-{
+namespace Fman::Compression {
 
 // https://pkwaredownloads.blob.core.windows.net/pkware-general/Documentation/APPNOTE-6.3.9.TXT
 struct LocalFileHeader
@@ -241,28 +241,6 @@ constexpr static size_t find_eocd_size(std::istream& stream)
     throw std::runtime_error("unable to find EOCD");
 }
 
-std::vector<uint8_t> DecompressZippedFile(const ZippedFileDefinition& zipped_file, std::istream& stream)
-{
-    std::vector<uint8_t> out_buffer(zipped_file.uncompressed_size);
-
-    stream.seekg(zipped_file.offset, std::ios::beg);
-
-    const LocalFileHeader lfh(stream);
-
-    if (lfh.compression_method != LocalFileHeader::COMPRESSION_DEFLATE)
-    {
-        READ_BINARY_PTR(stream, out_buffer.data(), lfh.uncompressed_size);
-    }
-    else
-    {
-        DecompressionIstream decomp_istream(stream, {.type = CompressionType::RAW});
-
-        READ_BINARY_PTR(decomp_istream, out_buffer.data(), lfh.uncompressed_size);
-    }
-
-    return out_buffer;
-}
-
 std::vector<ZippedFileDefinition> CreateZipDirectory(std::istream& stream)
 {
     // get buffer containing possible eocd
@@ -292,5 +270,30 @@ std::vector<ZippedFileDefinition> CreateZipDirectory(std::istream& stream)
     }
     return compressed_files_data;
 }
+
+namespace _impl_ {
+void decompress_zipped_file_impl(const ZippedFileDefinition& zipped_file, std::istream& stream, uint8_t* data)
+{
+    stream.seekg(zipped_file.offset, std::ios::beg);
+
+    const LocalFileHeader lfh(stream);
+
+    if (lfh.compression_method != LocalFileHeader::COMPRESSION_DEFLATE)
+    {
+        READ_BINARY_PTR(stream, data, lfh.uncompressed_size);
+    }
+    else
+    {
+        DecompressionIstream decomp_istream(stream, {.type = CompressionType::RAW});
+
+        READ_BINARY_PTR(decomp_istream, data, lfh.uncompressed_size);
+    }
+#ifdef FMAN_DO_CRC_32
+    Lud::check::eq(zipped_file.CRC_32, crc32(0, data, zipped_file.uncompressed_size),
+                   "Computed crc32 does not match");
+#endif
+}
+
+} // namespace _impl_
 
 } // namespace Fman::Compression

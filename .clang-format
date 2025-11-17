@@ -1,7 +1,22 @@
 IndentWidth: 4
 
 InsertBraces: true
-BreakBeforeBraces: Allman
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeElse: true
+  BeforeLambdaBody: false
+  BeforeWhile: true
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
 
 PointerAlignment: Left
 
@@ -20,8 +35,11 @@ AlignConsecutiveBitFields: AcrossEmptyLinesAndComments
 AllowShortBlocksOnASingleLine: Never
 AllowShortEnumsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: Never
-AllowShortLambdasOnASingleLine: Inline
+
 AllowShortLoopsOnASingleLine: false
+
+AllowShortLambdasOnASingleLine: Inline
+LambdaBodyIndentation: Signature
 
 BinPackArguments: true
 # BinPackParameters: OnePerLine
@@ -44,3 +62,8 @@ ReferenceAlignment: Left
 BreakConstructorInitializers: BeforeComma
 
 ColumnLimit: 0
+
+MaxEmptyLinesToKeep: 10
+
+KeepEmptyLines:
+  AtStartOfBlock: true

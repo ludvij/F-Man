@@ -168,7 +168,7 @@ TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
     Fman::SetRootToKnownPath("PWD");
     Fman::PushFolder("Fman Tests");
 
-    std::mt19937 mt(2051920);
+    std::mt19937 mt(2051920); // NOLINT
     std::uniform_int_distribution<uint8_t> dist;
     BigSerializable beeg;
     beeg.block_1.resize(CHUNK_SIZE);
@@ -241,7 +241,7 @@ TEST_CASE("Serialization - Bigger than block size", "[Fman][serial]")
 {
     Fman::SetRootToKnownPath("PWD");
     Fman::PushFolder("Fman Tests");
-    std::mt19937 mt(2051920);
+    std::mt19937 mt(2051920); // NOLINT
     std::uniform_int_distribution<uint8_t> dist;
     SECTION("Serialize")
     {
