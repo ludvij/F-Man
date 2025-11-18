@@ -26,6 +26,13 @@ struct ZippedFileDefinition
     uint32_t CRC_32;
 };
 
+
+struct Archive
+{
+    std::vector<std::vector<uint8_t>> file_entries;
+    std::vector<uint8_t> central_directory;
+};
+
 /**
  * @brief Creates a vector containing all directory entries contained in the zip file
  *
@@ -48,6 +55,8 @@ template <GrowableContiguosRange Rng = std::vector<uint8_t>>
 Rng DecompressZippedFile(const ZippedFileDefinition& zipped_file, std::istream& stream);
 
 
+
+bool AddToArchive(Archive& archive, std::istream& stream, const std::string_view name);
 
 
 

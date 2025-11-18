@@ -1,12 +1,22 @@
 // #include "internal/pch.hpp"
 
-#include "FileManager/util/Unzip.hpp"
+#include "FileManager/util/zip.hpp"
 
+#include "FileManager/FileManager.hpp"
 #include "FileManager/util/CompressionStreams.hpp"
 #include "zlib.h"
+#include <algorithm>
+#include <cstddef>
+#include <format>
+#include <ludutils/lud_mem_stream.hpp>
+#include <numeric>
+#include <vector>
 
 #define READ_BINARY_PTR(stream, ptr, sz) stream.read(reinterpret_cast<char*>(ptr), (sz))
 #define READ_BINARY(stream, var) READ_BINARY_PTR((stream), &(var), sizeof(var))
+
+#define WRITE_BINARY_PTR(stream, ptr, sz) stream.write(reinterpret_cast<const char*>(ptr), (sz))
+#define WRITE_BINARY(stream, var) WRITE_BINARY_PTR((stream), &(var), sizeof(var))
 
 namespace Fman::Compression {
 
@@ -28,15 +38,19 @@ struct LocalFileHeader
     std::string file_name{};
     // made a ptr so it can be used with memory_istream
     // maybe looking for better solutions
-    uint8_t* extra_field{};
+    std::vector<uint8_t> extra_field{};
 
     static constexpr uint16_t COMPRESSION_DEFLATE = 8;
     static constexpr uint16_t COMPRESSION_NONE = 0;
+
+    static constexpr uint32_t SIGNATURE = 0x04034B50;
 
     LocalFileHeader(const LocalFileHeader& other) = delete;
     LocalFileHeader(LocalFileHeader&& other) = delete;
     LocalFileHeader& operator=(const LocalFileHeader& other) = delete;
     LocalFileHeader& operator=(LocalFileHeader&& other) = delete;
+
+    LocalFileHeader() = default;
 
     explicit LocalFileHeader(std::istream& stream)
     {
@@ -52,18 +66,11 @@ struct LocalFileHeader
         READ_BINARY(stream, file_name_length);
         READ_BINARY(stream, extra_field_length);
 
-        char* buf = new char[file_name_length];
-        READ_BINARY_PTR(stream, buf, file_name_length);
-        file_name = std::string(buf, file_name_length);
-        delete[] buf;
+        file_name.resize(file_name_length);
+        READ_BINARY_PTR(stream, file_name.data(), file_name_length);
 
-        extra_field = new uint8_t[extra_field_length];
-        READ_BINARY_PTR(stream, extra_field, extra_field_length);
-    }
-
-    ~LocalFileHeader()
-    {
-        delete[] extra_field;
+        extra_field.resize(extra_field_length);
+        READ_BINARY_PTR(stream, extra_field.data(), extra_field_length);
     }
 };
 
@@ -88,10 +95,12 @@ struct CentralDirectoryHeader
     uint32_t offset{};
 
     std::string file_name{};
-    std::shared_ptr<uint8_t[]> extra_field{};
-    std::string file_comment{};
+    std::vector<uint8_t> extra_field{};
+    std::vector<uint8_t> file_comment{};
 
     static constexpr uint32_t SIGNATURE = 0x02014b50;
+
+    CentralDirectoryHeader() = default;
 
     explicit CentralDirectoryHeader(std::istream& stream)
     {
@@ -113,20 +122,15 @@ struct CentralDirectoryHeader
         READ_BINARY(stream, external_file_attrib);
         READ_BINARY(stream, offset);
 
-        extra_field = std::make_shared<uint8_t[]>(extra_field_length);
+        extra_field.reserve(extra_field_length);
 
-        const auto sz = std::max({file_name_length, file_comment_length});
-        char* buf = new char[sz];
+        file_name.resize(file_name_length);
+        READ_BINARY_PTR(stream, file_name.data(), file_name_length);
 
-        READ_BINARY_PTR(stream, buf, file_name_length);
-        file_name = std::string(buf, file_name_length);
+        READ_BINARY_PTR(stream, extra_field.data(), extra_field_length);
 
-        READ_BINARY_PTR(stream, extra_field.get(), extra_field_length);
-
-        READ_BINARY_PTR(stream, buf, file_comment_length);
-        file_comment = std::string(buf, file_comment_length);
-
-        delete[] buf;
+        file_comment.reserve(file_name_length);
+        READ_BINARY_PTR(stream, file_comment.data(), file_comment_length);
     }
 };
 
@@ -271,6 +275,65 @@ std::vector<ZippedFileDefinition> CreateZipDirectory(std::istream& stream)
     return compressed_files_data;
 }
 
+
+
+bool AddToArchive(Archive& archive, std::istream& stream, const std::string_view name)
+{
+    LocalFileHeader lfh;
+    lfh.signature = LocalFileHeader::SIGNATURE;
+    lfh.version = 2.0; // means compressed with deflate
+    lfh.gen_purpose_flag = 0;
+    lfh.compression_method = LocalFileHeader::COMPRESSION_DEFLATE;
+    lfh.file_last_modification_date = 0; // get epoch time
+    lfh.file_last_modification_time = 0; // get epoch time
+
+    const auto uncompressed_data = Fman::Slurp<std::vector<uint8_t>>(stream);
+
+    lfh.CRC_32 = crc32(0, uncompressed_data.data(), uncompressed_data.size());
+
+    std::vector<uint8_t> compressed_data;
+    Lud::vector_ostream<uint8_t> vec_ostream(compressed_data);
+    {
+        // scoped so sync is called
+        CompressionOstream comp_ostream(vec_ostream, {.type = CompressionType::RAW});
+        WRITE_BINARY_PTR(comp_ostream, uncompressed_data.data(), uncompressed_data.size());
+    }
+    lfh.compressed_size = compressed_data.size();
+    lfh.uncompressed_size = uncompressed_data.size();
+    lfh.file_name_length = name.size();
+    lfh.extra_field_length = 0;
+    lfh.file_name = name;
+
+    CentralDirectoryHeader cdh;
+    cdh.signature = CentralDirectoryHeader::SIGNATURE;
+    cdh.version_made_by = 0; //????
+    cdh.version_to_extract = 2.0;
+    cdh.compressed_size = compressed_data.size();
+    cdh.file_last_modification_date = lfh.file_last_modification_date;
+    cdh.file_last_modification_time = lfh.file_last_modification_time;
+    cdh.CRC_32 = lfh.CRC_32;
+    cdh.compressed_size = lfh.compressed_size;
+    cdh.uncompressed_size = lfh.uncompressed_size;
+    cdh.file_name_length = lfh.file_name_length;
+    cdh.extra_field_length = 0;
+    cdh.file_comment_length = 0;
+    cdh.disk_start = 0;
+    cdh.internal_file_attrib = 0;
+    cdh.external_file_attrib = 0;
+
+    cdh.offset = std::transform_reduce(
+        archive.file_entries.cbegin(),
+        archive.file_entries.cend(),
+        0,
+        [](size_t sz, size_t tot) { return tot + sz; },
+        [](const auto& vec) { return vec.size(); });
+
+    cdh.file_name = lfh.file_name;
+
+    return true;
+}
+
+
 namespace _impl_ {
 void decompress_zipped_file_impl(const ZippedFileDefinition& zipped_file, std::istream& stream, uint8_t* data)
 {
@@ -289,8 +352,10 @@ void decompress_zipped_file_impl(const ZippedFileDefinition& zipped_file, std::i
         READ_BINARY_PTR(decomp_istream, data, lfh.uncompressed_size);
     }
 #ifdef FMAN_DO_CRC_32
-    Lud::check::eq(zipped_file.CRC_32, crc32(0, data, zipped_file.uncompressed_size),
-                   "Computed crc32 does not match");
+    Lud::check::eq(
+        zipped_file.CRC_32,
+        crc32(0, data, zipped_file.uncompressed_size),
+        std::format("File: [{}] is corrupted and can not be recovered", zipped_file.file_name));
 #endif
 }
 

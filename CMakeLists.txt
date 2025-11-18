@@ -55,8 +55,8 @@ set(SOURCES
 	include/FileManager/util/CompressionStreams.hpp
 	src/util/CompressionStreams.cpp
 
-	include/FileManager/util/Unzip.hpp
-	src/util/Unzip.cpp
+	include/FileManager/util/zip.hpp
+	src/util/zip.cpp
 
 	include/FileManager/vfs/Vfs.hpp
 	src/vfs/Vfs.cpp
@@ -64,7 +64,7 @@ set(SOURCES
 target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_PREFERRED_SEPARATOR="${FMAN_PREFERRED_SEPARATOR}")
 target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_EMBED_RESOURCES)
 
-if(FMAN_DO_CRC_32)
+if(FMAN_DO_CRC32)
 	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_DO_CRC_32)
 endif()
 

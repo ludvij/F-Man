@@ -4,14 +4,7 @@
 
 #include <zlib.h>
 
-namespace Fman::Compression
-{
-
-#ifdef ENABLES_FILE_MANAGER_COMPRESSION_LOG
-    #define FMAN_LOG(...) std::println(__VA_ARGS__);
-#else
-    #define FMAN_LOG(...)
-#endif // ENABLES_FILE_MANAGER_COMPRESSION_LOG
+namespace Fman::Compression {
 
 auto static constexpr translate_options(CompressionOptions options)
 {
@@ -110,21 +103,17 @@ CompressionStreambuf::IntT CompressionStreambuf::overflow(IntT ch)
 std::streamsize CompressionStreambuf::xsputn(const CharT* s, std::streamsize count)
 {
     std::streamsize written = 0;
-    FMAN_LOG("[WRITE]: Sent: {} available: {}", count, get_available_put_area());
     while (written < count)
     {
         if (get_available_put_area() == 0)
         {
-            FMAN_LOG("[WRITE]:   Called overflow");
             overflow(TraitsT::eof());
-            FMAN_LOG("[WRITE]:   Buffer size: {}", get_available_put_area());
         }
         const auto avail = get_available_put_area();
         const std::streamsize to_copy = avail < (count - written) ? avail : (count - written);
         TraitsT::copy(Base::pptr(), s + written, to_copy);
         written += to_copy;
         Base::pbump(static_cast<int>(to_copy));
-        FMAN_LOG("[WRITE]:   Wrote: {} [{}/{}]", to_copy, written, count);
     }
     return written;
 }
@@ -178,7 +167,8 @@ void CompressionStreambuf::compress_buffer(const size_t sz, const bool end)
         {
             throw std::runtime_error("error while writing to stream");
         }
-    } while (m_z_stream.avail_out == 0);
+    }
+    while (m_z_stream.avail_out == 0);
 
     if (end)
     {
@@ -191,7 +181,8 @@ void CompressionStreambuf::compress_buffer(const size_t sz, const bool end)
 }
 
 CompressionOstream::CompressionOstream(std::ostream& ostream, CompressionOptions options)
-    : Base(&m_buffer), m_buffer(ostream, options)
+    : Base(&m_buffer)
+    , m_buffer(ostream, options)
 {
 }
 
@@ -222,7 +213,10 @@ DecompressionStreambuf::~DecompressionStreambuf()
 
 DecompressionStreambuf::IntT DecompressionStreambuf::underflow()
 {
-    decompress_buffer();
+    if (!decompress_buffer())
+    {
+        return TraitsT::eof();
+    }
 
     return TraitsT::not_eof(*Base::gptr());
 }
@@ -230,21 +224,17 @@ DecompressionStreambuf::IntT DecompressionStreambuf::underflow()
 std::streamsize DecompressionStreambuf::xsgetn(CharT* s, std::streamsize count)
 {
     std::streamsize read = 0;
-    FMAN_LOG("[ READ]: Requested: {} available: {}", count, showmanyc());
     while (read < count)
     {
         if (showmanyc() == 0)
         {
-            FMAN_LOG("[ READ]:   Called underflow");
             underflow();
-            FMAN_LOG("[ READ]:   Buffer size: {}", showmanyc());
         }
         const auto avail = showmanyc();
         const std::streamsize to_copy = avail < (count - read) ? avail : (count - read);
         TraitsT::copy(s + read, Base::gptr(), to_copy);
         read += to_copy;
         Base::gbump(static_cast<int>(to_copy));
-        FMAN_LOG("[ READ]:   Read: {} [{}/{}]", to_copy, read, count);
     }
 
     return read;
@@ -254,11 +244,11 @@ std::streamsize DecompressionStreambuf::showmanyc()
 {
     return Base::egptr() - Base::gptr();
 }
-void DecompressionStreambuf::decompress_buffer(bool end)
+bool DecompressionStreambuf::decompress_buffer()
 {
     if (m_finished)
     {
-        throw std::runtime_error("zlib stream finished but read was called again");
+        return false;
     }
     int err;
 
@@ -301,6 +291,8 @@ void DecompressionStreambuf::decompress_buffer(bool end)
     {
         m_finished = true;
     }
+
+    return m_finished;
 }
 
 void DecompressionStreambuf::set_get_area(const size_t sz)
@@ -310,7 +302,8 @@ void DecompressionStreambuf::set_get_area(const size_t sz)
 }
 
 DecompressionIstream::DecompressionIstream(std::istream& istream, CompressionOptions options)
-    : Base(&m_buffer), m_buffer(istream, options)
+    : Base(&m_buffer)
+    , m_buffer(istream, options)
 {
 }
 } // namespace Fman::Compression

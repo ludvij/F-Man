@@ -3,7 +3,7 @@ IndentWidth: 4
 InsertBraces: true
 BreakBeforeBraces: Custom
 BraceWrapping:
-  AfterCaseLabel: false
+  AfterCaseLabel: true
   AfterClass: true
   AfterControlStatement: Always
   AfterEnum: true
@@ -12,6 +12,7 @@ BraceWrapping:
   AfterStruct: true
   AfterUnion: true
   AfterExternBlock: true
+  BeforeCatch: true
   BeforeElse: true
   BeforeLambdaBody: false
   BeforeWhile: true

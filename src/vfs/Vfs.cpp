@@ -1,6 +1,6 @@
 #include "FileManager/vfs/Vfs.hpp"
 #include "FileManager/FileManager.hpp"
-#include "FileManager/util/Unzip.hpp"
+#include "FileManager/util/zip.hpp"
 #include "ludutils/lud_mem_stream.hpp"
 
 #include <cstddef>
@@ -14,8 +14,7 @@
 #include <utility>
 #include <variant>
 
-namespace Fman
-{
+namespace Fman {
 
 namespace fs = std::filesystem;
 
@@ -42,8 +41,7 @@ size_t VTree::LoadFrom(const fs::path& path)
         }
         else
         {
-            const auto slurp = [](const auto& file_name)
-            {
+            const auto slurp = [](const auto& file_name) {
                 std::ifstream stream(file_name, std::ios::binary | std::ios::ate);
                 const std::streamsize sz = stream.tellg();
 

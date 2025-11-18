@@ -7,8 +7,7 @@
 
 #include <zlib.h>
 
-namespace Fman::Compression
-{
+namespace Fman::Compression {
 constexpr static auto CHUNK_SIZE = 16384;
 
 enum class CompressionType : uint8_t
@@ -124,7 +123,7 @@ protected:
     std::streamsize showmanyc() override;
 
 private:
-    void decompress_buffer(bool end = false);
+    bool decompress_buffer();
 
     void set_get_area(size_t sz);
 
