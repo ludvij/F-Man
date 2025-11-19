@@ -10,11 +10,9 @@
 #include <string_view>
 #include <vector>
 
-namespace Fman
-{
+namespace Fman {
 
-namespace mode
-{
+namespace mode {
 
 constexpr int read = std::ios::in;
 constexpr int write = std::ios::out;
@@ -24,8 +22,7 @@ constexpr int binary = std::ios::binary;
 
 } // namespace mode
 
-namespace traverse
-{
+namespace traverse {
 
 constexpr uint8_t files = 0x01;
 constexpr uint8_t folders = 0x02;
@@ -155,7 +152,7 @@ std::shared_ptr<std::fstream> PushFile(const std::filesystem::path& name, OpenMo
 std::vector<std::filesystem::path> Traverse(int depth = 1, TraverseMode trav_mode = traverse::all, std::initializer_list<std::string_view> filters = {});
 
 /**
- * @brief returns whole file as a single string
+ * @brief returns whole file from current stream postion to end
  *
  * @tparam GrowableContigousRange a growable contigous range
  * @param stream the stream of the file
@@ -192,8 +189,7 @@ Rng Slurp(const std::filesystem::path& path)
     return Slurp<Rng>(*file);
 }
 
-namespace Resources
-{
+namespace Resources {
 /**
  * @brief Obtains a stream to a resourece
  *

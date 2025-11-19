@@ -1,11 +1,8 @@
 #ifndef FILE_MANAGER_COMPRESSION_UTIL_HEADER
 #define FILE_MANAGER_COMPRESSION_UTIL_HEADER
 
-#include <array>
 #include <cstdint>
 #include <streambuf>
-
-#include <zlib.h>
 
 namespace Fman::Compression {
 constexpr static auto CHUNK_SIZE = 16384;
@@ -83,11 +80,12 @@ private:
     std::streamsize get_available_put_area() const;
 
 private:
-    std::array<uint8_t, CHUNK_SIZE> m_buffer{};
 
     std::ostream& m_output_stream;
 
-    z_stream m_z_stream{};
+    // have to hide the zlib include somehow
+    struct CompImpl;
+    std::unique_ptr<CompImpl> p_impl{};
 };
 
 class DecompressionStreambuf : public std::streambuf
@@ -128,12 +126,11 @@ private:
     void set_get_area(size_t sz);
 
 private:
-    std::array<uint8_t, CHUNK_SIZE> m_out_buffer{};
-    std::array<uint8_t, CHUNK_SIZE> m_in_bufer{};
 
     std::istream& m_input_stream;
 
-    z_stream m_z_stream{};
+    struct DecompImpl;
+    std::unique_ptr<DecompImpl> p_impl;
 
     bool m_finished{false};
 };

@@ -2,6 +2,7 @@
 
 #include "FileManager/util/CompressionStreams.hpp"
 
+#include <memory>
 #include <zlib.h>
 
 namespace Fman::Compression {
@@ -63,8 +64,16 @@ auto static constexpr translate_options(CompressionOptions options)
     return t;
 }
 
+struct CompressionStreambuf::CompImpl
+{
+    std::array<uint8_t, CHUNK_SIZE> buffer{};
+
+    z_stream z_strm;
+};
+
 CompressionStreambuf::CompressionStreambuf(std::ostream& output_stream, CompressionOptions options)
     : m_output_stream(output_stream)
+    , p_impl(std::make_unique<CompImpl>())
 {
     set_put_area();
 
@@ -74,11 +83,13 @@ CompressionStreambuf::CompressionStreambuf(std::ostream& output_stream, Compress
     }
     const auto [level, w_bits, strategy] = translate_options(options);
 
-    m_z_stream.zalloc = Z_NULL;
-    m_z_stream.zfree = Z_NULL;
-    m_z_stream.opaque = Z_NULL;
+    z_stream& z_strm = p_impl->z_strm;
 
-    if (auto err = deflateInit2(&m_z_stream, level, Z_DEFLATED, w_bits, 8, strategy); err != Z_OK)
+    z_strm.zalloc = Z_NULL;
+    z_strm.zfree = Z_NULL;
+    z_strm.opaque = Z_NULL;
+
+    if (auto err = deflateInit2(&z_strm, level, Z_DEFLATED, w_bits, 8, strategy); err != Z_OK)
     {
         throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
     }
@@ -127,9 +138,9 @@ int CompressionStreambuf::sync()
 
 void CompressionStreambuf::set_put_area()
 {
-    char* cs = reinterpret_cast<char*>(m_buffer.data());
+    char* cs = reinterpret_cast<char*>(p_impl->buffer.data());
     // whacky hack in order to accomodate extra ch in overflow
-    Base::setp(cs, cs + m_buffer.size());
+    Base::setp(cs, cs + p_impl->buffer.size());
 }
 
 std::streamsize CompressionStreambuf::get_available_put_area() const
@@ -140,39 +151,41 @@ std::streamsize CompressionStreambuf::get_available_put_area() const
 void CompressionStreambuf::compress_buffer(const size_t sz, const bool end)
 {
     int err;
-    uint8_t out[CHUNK_SIZE];
+    std::array<uint8_t, CHUNK_SIZE> out;
 
     const int flush = end ? Z_FINISH : Z_NO_FLUSH;
 
-    m_z_stream.avail_in = sz;
-    m_z_stream.next_in = m_buffer.data();
+    auto& z_strm = p_impl->z_strm;
+
+    z_strm.avail_in = sz;
+    z_strm.next_in = p_impl->buffer.data();
 
     // this do while was wracking my brain for a while
     // but basically we run this until our input is completely consumed
     // this means that we can't fill our output buffer
     do
     {
-        m_z_stream.avail_out = CHUNK_SIZE;
-        m_z_stream.next_out = out;
+        z_strm.avail_out = CHUNK_SIZE;
+        z_strm.next_out = out.data();
 
-        err = deflate(&m_z_stream, flush);
+        err = deflate(&z_strm, flush);
         if (err < Z_OK)
         {
-            (void)deflateEnd(&m_z_stream);
+            (void)deflateEnd(&z_strm);
             throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
         }
-        const std::streamsize have = CHUNK_SIZE - m_z_stream.avail_out;
+        const std::streamsize have = CHUNK_SIZE - z_strm.avail_out;
         m_output_stream.write(reinterpret_cast<char*>(&out), have);
         if (!m_output_stream)
         {
             throw std::runtime_error("error while writing to stream");
         }
     }
-    while (m_z_stream.avail_out == 0);
+    while (z_strm.avail_out == 0);
 
     if (end)
     {
-        (void)deflateEnd(&m_z_stream);
+        (void)deflateEnd(&z_strm);
         if (err != Z_STREAM_END)
         {
             throw std::runtime_error("ZLIB ERROR: Stream could not finish");
@@ -186,18 +199,27 @@ CompressionOstream::CompressionOstream(std::ostream& ostream, CompressionOptions
 {
 }
 
+struct DecompressionStreambuf::DecompImpl
+{
+    std::array<uint8_t, CHUNK_SIZE> out_buffer{};
+    std::array<uint8_t, CHUNK_SIZE> in_bufer{};
+    z_stream z_strm;
+};
+
 DecompressionStreambuf::DecompressionStreambuf(std::istream& input_stream, CompressionOptions options)
     : m_input_stream(input_stream)
+    , p_impl(std::make_unique<DecompImpl>())
 {
     const auto [level, w_bits, strategy] = translate_options(options);
 
-    m_z_stream.zalloc = Z_NULL;
-    m_z_stream.zfree = Z_NULL;
-    m_z_stream.opaque = Z_NULL;
-    m_z_stream.avail_in = 0;
-    m_z_stream.next_in = Z_NULL;
+    auto& z_strm = p_impl->z_strm;
+    z_strm.zalloc = Z_NULL;
+    z_strm.zfree = Z_NULL;
+    z_strm.opaque = Z_NULL;
+    z_strm.avail_in = 0;
+    z_strm.next_in = Z_NULL;
 
-    if (auto err = inflateInit2(&m_z_stream, w_bits); err != Z_OK)
+    if (auto err = inflateInit2(&z_strm, w_bits); err != Z_OK)
     {
         throw std::runtime_error(std::format("ZLIB ERROR: {}", zError(err)));
     }
@@ -207,7 +229,7 @@ DecompressionStreambuf::~DecompressionStreambuf()
 {
     if (!m_finished)
     {
-        (void)inflateEnd(&m_z_stream);
+        (void)inflateEnd(&p_impl->z_strm);
     }
 }
 
@@ -252,22 +274,24 @@ bool DecompressionStreambuf::decompress_buffer()
     }
     int err;
 
-    if (m_z_stream.avail_in == 0)
+    auto& z_strm = p_impl->z_strm;
+
+    if (z_strm.avail_in == 0)
     {
-        m_input_stream.read(reinterpret_cast<char*>(m_in_bufer.data()), CHUNK_SIZE);
+        m_input_stream.read(reinterpret_cast<char*>(p_impl->in_bufer.data()), CHUNK_SIZE);
 
         if (m_input_stream.bad())
         {
             m_finished = true;
             throw std::runtime_error("error while reading compression stream");
         }
-        m_z_stream.avail_in = m_input_stream.gcount();
-        m_z_stream.next_in = m_in_bufer.data();
+        z_strm.avail_in = m_input_stream.gcount();
+        z_strm.next_in = p_impl->in_bufer.data();
     }
 
-    m_z_stream.avail_out = CHUNK_SIZE;
-    m_z_stream.next_out = m_out_buffer.data();
-    err = inflate(&m_z_stream, Z_NO_FLUSH);
+    z_strm.avail_out = CHUNK_SIZE;
+    z_strm.next_out = p_impl->out_buffer.data();
+    err = inflate(&z_strm, Z_NO_FLUSH);
     switch (err)
     {
     case Z_STREAM_ERROR:
@@ -278,13 +302,13 @@ bool DecompressionStreambuf::decompress_buffer()
         [[fallthrough]];
     case Z_MEM_ERROR:
         m_finished = true;
-        (void)inflateEnd(&m_z_stream);
+        (void)inflateEnd(&z_strm);
         throw std::runtime_error("ZLIB error, could not continue");
     default:
         break;
     }
 
-    const size_t have = CHUNK_SIZE - m_z_stream.avail_out;
+    const size_t have = CHUNK_SIZE - z_strm.avail_out;
 
     set_get_area(have);
     if (err == Z_STREAM_END)
@@ -297,7 +321,7 @@ bool DecompressionStreambuf::decompress_buffer()
 
 void DecompressionStreambuf::set_get_area(const size_t sz)
 {
-    char* cs = reinterpret_cast<char*>(m_out_buffer.data());
+    char* cs = reinterpret_cast<char*>(p_impl->out_buffer.data());
     Base::setg(cs, cs, cs + sz);
 }
 

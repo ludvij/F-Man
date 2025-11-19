@@ -23,14 +23,19 @@ struct ZippedFileDefinition
     uint32_t offset;
     uint32_t uncompressed_size;
     uint32_t compressed_size;
-    uint32_t CRC_32;
 };
 
-
-struct Archive
+class Archive
 {
-    std::vector<std::vector<uint8_t>> file_entries;
-    std::vector<uint8_t> central_directory;
+public:
+    Archive();
+
+    bool Append(std::istream& stream, const std::string_view name);
+
+private:
+    struct Impl;
+
+    std::unique_ptr<Impl> p_impl;
 };
 
 /**
@@ -54,31 +59,21 @@ template <GrowableContiguosRange Rng = std::vector<uint8_t>>
 [[nodiscard]]
 Rng DecompressZippedFile(const ZippedFileDefinition& zipped_file, std::istream& stream);
 
-
-
-bool AddToArchive(Archive& archive, std::istream& stream, const std::string_view name);
-
-
-
-
-
-
-
-
+// I don't want to include zip file structures here, so this is kind of a mess
 namespace _impl_ {
-void decompress_zipped_file_impl(const ZippedFileDefinition& zipped_file, std::istream& stream, uint8_t* data);
+void decompress_zipped_file(const ZippedFileDefinition& zipped_file, std::istream& stream, uint8_t* data);
 }
 
 template <GrowableContiguosRange Rng>
 Rng DecompressZippedFile(const ZippedFileDefinition& zipped_file, std::istream& stream)
 {
+    const auto current_pos = stream.tellg();
+
     Rng result;
     result.resize(zipped_file.uncompressed_size);
 
-    stream.seekg(zipped_file.offset, std::ios::beg);
-
-    _impl_::decompress_zipped_file_impl(zipped_file, stream, reinterpret_cast<uint8_t*>(result.data()));
-
+    _impl_::decompress_zipped_file(zipped_file, stream, reinterpret_cast<uint8_t*>(result.data()));
+    stream.seekg(current_pos, std::ios::beg);
     return result;
 }
 
