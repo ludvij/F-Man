@@ -1,4 +1,4 @@
-#include "FileManager/util/zip.hpp"
+#include "FileManager/compression/archive/zip.hpp"
 #include "catch2/catch_test_macros.hpp"
 #include "ludutils/lud_mem_stream.hpp"
 #include <catch2/catch_all.hpp>
@@ -15,7 +15,7 @@ EXTERNAL_LINKAGE unsigned int TEST_ZIP_len;
 TEST_CASE("Unzip memory", "[vfs][unzip]")
 {
     Lud::memory_istream<uint8_t> stream({TEST_ZIP, TEST_ZIP_len});
-    auto files = Fman::Compression::CreateZipDirectory(stream);
+    auto files = Fman::Compression::GetDirectory(stream);
     SECTION("Correct folder structure")
     {
         REQUIRE(files[0].file_name == "test/A/");
@@ -28,7 +28,7 @@ TEST_CASE("Unzip memory", "[vfs][unzip]")
 
     SECTION("Empty file")
     {
-        auto empty = Fman::Compression::DecompressZippedFile(files[4], stream);
+        auto empty = Fman::Compression::DecompressFile(files[4], stream);
         auto require_block = [&]() {
             REQUIRE(empty.size() == 0);
         };
@@ -37,8 +37,8 @@ TEST_CASE("Unzip memory", "[vfs][unzip]")
 
     SECTION("File with content")
     {
-        auto this_is_a_text = Fman::Compression::DecompressZippedFile<std::string>(files[2], stream);
-        auto this_is_a_test = Fman::Compression::DecompressZippedFile<std::string>(files[5], stream);
+        auto this_is_a_text = Fman::Compression::DecompressFile(files[2], stream) | std::ranges::to<std::string>();
+        auto this_is_a_test = Fman::Compression::DecompressFile(files[5], stream) | std::ranges::to<std::string>();
         auto requires_block = [&]() {
             REQUIRE(this_is_a_test == "this is a test");
             REQUIRE(this_is_a_text == "this is a text");

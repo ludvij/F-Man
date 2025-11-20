@@ -1,18 +1,18 @@
-// #include "internal/pch.hpp"
-
-#include "FileManager/util/zip.hpp"
+#include "FileManager/compression/archive/zip.hpp"
 
 #include "FileManager/FileManager.hpp"
-#include "FileManager/util/CompressionStreams.hpp"
+#include "FileManager/compression/CompressionStreams.hpp"
 #include "zlib.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <format>
-#include <functional>
-#include <ludutils/lud_mem_stream.hpp>
 #include <memory>
 #include <numeric>
+#include <ostream>
 #include <vector>
+
+#include <ludutils/lud_mem_stream.hpp>
 
 #define READ_BINARY_PTR(stream, ptr, sz) stream.read(reinterpret_cast<char*>(ptr), (sz))
 #define READ_BINARY(stream, var) READ_BINARY_PTR((stream), &(var), sizeof(var))
@@ -96,8 +96,8 @@ struct EndOfCentralDirectoryRecord
     uint32_t signature{};
     uint16_t disk_number{};
     uint16_t disk_start_number{};
-    uint16_t directory_record_number{};
     uint16_t directory_record_number_disk{};
+    uint16_t directory_record_number{};
     uint32_t central_directory_size{};
     uint32_t offset{};
     uint16_t comment_length{};
@@ -113,6 +113,8 @@ struct Archive::Impl
     };
     std::vector<file_entry> file_entries;
     std::vector<CentralDirectoryHeader> central_directory;
+
+    size_t file_entries_size = 0;
 
     constexpr static uint32_t get_archive_entry_size(const file_entry& entry)
     {
@@ -151,7 +153,7 @@ static LocalFileHeader read_local_file_header(std::istream& stream)
     return lfh;
 }
 
-static void write_local_file_header(std::ostream& stream, LocalFileHeader& lfh)
+static void write_local_file_header(std::ostream& stream, const LocalFileHeader& lfh)
 {
     WRITE_BINARY(stream, lfh.signature);
     WRITE_BINARY(stream, lfh.version);
@@ -164,8 +166,14 @@ static void write_local_file_header(std::ostream& stream, LocalFileHeader& lfh)
     WRITE_BINARY(stream, lfh.uncompressed_size);
     WRITE_BINARY(stream, lfh.file_name_length);
     WRITE_BINARY(stream, lfh.extra_field_length);
-    WRITE_BINARY_PTR(stream, lfh.file_name.data(), lfh.file_name_length);
-    WRITE_BINARY_PTR(stream, lfh.extra_field.data(), lfh.extra_field_length);
+    if (lfh.file_name_length > 0)
+    {
+        WRITE_BINARY_PTR(stream, lfh.file_name.data(), lfh.file_name_length);
+    }
+    if (lfh.extra_field_length > 0)
+    {
+        WRITE_BINARY_PTR(stream, lfh.extra_field.data(), lfh.extra_field_length);
+    }
 }
 
 static CentralDirectoryHeader read_central_directory_header(std::istream& stream)
@@ -201,6 +209,40 @@ static CentralDirectoryHeader read_central_directory_header(std::istream& stream
     return cdh;
 }
 
+void write_central_directory_header(std::ostream& stream, const CentralDirectoryHeader& cdh)
+{
+    WRITE_BINARY(stream, cdh.signature);
+    WRITE_BINARY(stream, cdh.version_made_by);
+    WRITE_BINARY(stream, cdh.version_to_extract);
+    WRITE_BINARY(stream, cdh.gen_purpose_flag);
+    WRITE_BINARY(stream, cdh.compression_method);
+    WRITE_BINARY(stream, cdh.file_last_modification_time);
+    WRITE_BINARY(stream, cdh.file_last_modification_date);
+    WRITE_BINARY(stream, cdh.CRC_32);
+    WRITE_BINARY(stream, cdh.compressed_size);
+    WRITE_BINARY(stream, cdh.uncompressed_size);
+    WRITE_BINARY(stream, cdh.file_name_length);
+    WRITE_BINARY(stream, cdh.extra_field_length);
+    WRITE_BINARY(stream, cdh.file_comment_length);
+    WRITE_BINARY(stream, cdh.disk_start);
+    WRITE_BINARY(stream, cdh.internal_file_attrib);
+    WRITE_BINARY(stream, cdh.external_file_attrib);
+    WRITE_BINARY(stream, cdh.offset);
+
+    if (cdh.file_name_length > 0)
+    {
+        WRITE_BINARY_PTR(stream, cdh.file_name.data(), cdh.file_name_length);
+    }
+    if (cdh.extra_field_length > 0)
+    {
+        WRITE_BINARY_PTR(stream, cdh.extra_field.data(), cdh.extra_field_length);
+    }
+    if (cdh.file_comment_length > 0)
+    {
+        WRITE_BINARY_PTR(stream, cdh.file_comment.data(), cdh.file_comment_length);
+    }
+}
+
 static EndOfCentralDirectoryRecord read_end_of_central_directory_record(std::istream& stream)
 {
     EndOfCentralDirectoryRecord eocd;
@@ -220,6 +262,23 @@ static EndOfCentralDirectoryRecord read_end_of_central_directory_record(std::ist
     return eocd;
 }
 
+static void write_end_of_central_directory_record(std::ostream& stream, const EndOfCentralDirectoryRecord& eocd)
+{
+    WRITE_BINARY(stream, eocd.signature);
+    WRITE_BINARY(stream, eocd.disk_number);
+    WRITE_BINARY(stream, eocd.disk_start_number);
+    WRITE_BINARY(stream, eocd.directory_record_number);
+    WRITE_BINARY(stream, eocd.directory_record_number_disk);
+    WRITE_BINARY(stream, eocd.central_directory_size);
+    WRITE_BINARY(stream, eocd.offset);
+    WRITE_BINARY(stream, eocd.comment_length);
+
+    if (eocd.comment_length > 0)
+    {
+        WRITE_BINARY_PTR(stream, eocd.comment.data(), eocd.comment_length);
+    }
+}
+
 static DataDescriptor read_data_descriptor(std::istream& stream)
 {
     DataDescriptor dd;
@@ -235,7 +294,7 @@ static DataDescriptor read_data_descriptor(std::istream& stream)
     return dd;
 }
 
-constexpr static size_t find_eocd_size(std::istream& stream)
+constexpr static size_t find_eocd_size_from_zip(std::istream& stream)
 {
     // find a signature 0x06054b50
     // advance 16 Bytes to get "offset" to start of central directory (from begginig of file)
@@ -288,11 +347,11 @@ constexpr static size_t find_eocd_size(std::istream& stream)
     throw std::runtime_error("unable to find EOCD");
 }
 
-std::vector<ZippedFileDefinition> CreateZipDirectory(std::istream& stream)
+std::vector<ZippedFileDefinition> GetDirectory(std::istream& stream)
 {
     // get buffer containing possible eocd
 
-    const auto eocd_size = static_cast<std::streamoff>(find_eocd_size(stream));
+    const auto eocd_size = static_cast<std::streamoff>(find_eocd_size_from_zip(stream));
 
     // first we need to search for the EOCD
     stream.seekg(-eocd_size, std::ios::end);
@@ -317,20 +376,13 @@ std::vector<ZippedFileDefinition> CreateZipDirectory(std::istream& stream)
     return compressed_files_data;
 }
 
-bool Archive::Append(std::istream& stream, const std::string_view name)
+bool Archive::Push(std::istream& stream, const std::string_view name)
 {
     const auto uncompressed_data = Fman::Slurp<std::vector<uint8_t>>(stream);
     p_impl->file_entries.emplace({});
     p_impl->central_directory.emplace({});
     auto& [lfh, compressed_data] = p_impl->file_entries.back();
     auto& cdh = p_impl->central_directory.back();
-
-    auto current_offset = std::transform_reduce(
-        p_impl->file_entries.cbegin(),
-        p_impl->file_entries.cend(),
-        0U,
-        std::plus<uint32_t>{},
-        Impl::get_archive_entry_size);
 
     uint32_t crc = crc32(0, uncompressed_data.data(), uncompressed_data.size());
     // scoped so sync is called
@@ -367,36 +419,70 @@ bool Archive::Append(std::istream& stream, const std::string_view name)
     cdh.disk_start = 0;
     cdh.internal_file_attrib = 0;
     cdh.external_file_attrib = 0;
-    cdh.offset = current_offset;
+    cdh.offset = p_impl->file_entries_size;
     cdh.file_name = lfh.file_name;
+
+    p_impl->file_entries_size += Impl::get_archive_entry_size(p_impl->file_entries.back());
 
     return true;
 }
 
-namespace _impl_ {
-void decompress_zipped_file(const ZippedFileDefinition& zipped_file, std::istream& stream, uint8_t* data)
+bool Archive::Store(std::ostream& stream)
 {
-    stream.seekg(zipped_file.offset, std::ios::beg);
+    const auto& [entries, central_directory, offset] = *p_impl;
+    const auto eocd_size = [](uint32_t tot, const CentralDirectoryHeader& cdh) {
+        return 46L + cdh.file_comment_length + cdh.file_name_length + cdh.extra_field_length + tot;
+    };
 
-    const LocalFileHeader lfh = read_local_file_header(stream);
+    EndOfCentralDirectoryRecord eocd;
+    eocd.signature = Signatures::END_OF_CENTRAL_DIRECTORY_RECORD;
+    eocd.disk_number = 0;
+    eocd.disk_start_number = 0;
+    eocd.directory_record_number = central_directory.size();
+    eocd.directory_record_number_disk = 0;
+    eocd.central_directory_size = std::accumulate(central_directory.cbegin(), central_directory.cend(), 0U, eocd_size);
+    eocd.offset = offset;
+    eocd.comment_length = 0;
+
+    for (const auto& entry : entries)
+    {
+        write_local_file_header(stream, entry.header);
+        WRITE_BINARY_PTR(stream, entry.compressed_data.data(), entry.compressed_data.size());
+    }
+    for (const auto& directory : central_directory)
+    {
+        write_central_directory_header(stream, directory);
+    }
+    write_end_of_central_directory_record(stream, eocd);
+
+    return true;
+}
+
+std::vector<uint8_t> DecompressFile(const ZippedFileDefinition& zipped_file, std::istream& in_stream)
+{
+    in_stream.seekg(zipped_file.offset, std::ios::beg);
+
+    const LocalFileHeader lfh = read_local_file_header(in_stream);
+
+    std::vector<uint8_t> buffer(lfh.uncompressed_size);
 
     if (lfh.compression_method != Compression::DEFLATE)
     {
-        READ_BINARY_PTR(stream, data, lfh.uncompressed_size);
+        READ_BINARY_PTR(in_stream, buffer.data(), lfh.uncompressed_size);
     }
     else
     {
-        DecompressionIstream decomp_istream(stream, {.type = CompressionType::RAW});
+        DecompressionIstream decomp_istream(in_stream, {.type = CompressionType::RAW});
 
-        READ_BINARY_PTR(decomp_istream, data, lfh.uncompressed_size);
+        READ_BINARY_PTR(decomp_istream, buffer.data(), lfh.uncompressed_size);
     }
 #ifdef FMAN_DO_CRC_32
     Lud::check::eq(
         lfh.CRC_32,
-        crc32(0, data, lfh.uncompressed_size),
+        crc32(0, buffer.data(), lfh.uncompressed_size),
         std::format("File: [{}] is corrupted and can not be recovered", lfh.file_name));
 #endif
-}
+    return buffer;
 
 } // namespace _impl_
 

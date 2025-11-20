@@ -1,6 +1,6 @@
 #include "FileManager/vfs/Vfs.hpp"
 #include "FileManager/FileManager.hpp"
-#include "FileManager/util/zip.hpp"
+#include "FileManager/compression/archive/zip.hpp"
 #include "ludutils/lud_mem_stream.hpp"
 
 #include <cstddef>
@@ -61,7 +61,7 @@ size_t VTree::LoadFrom(const fs::path& path)
 size_t VTree::LoadZip(std::istream& stream)
 {
     using namespace Fman::Compression;
-    auto directory = CreateZipDirectory(stream);
+    auto directory = GetDirectory(stream);
     size_t elems = 0;
 
     for (const auto& entry : directory)
@@ -73,7 +73,7 @@ size_t VTree::LoadZip(std::istream& stream)
         }
         else
         {
-            elems += VTree::Add(entry.file_name, DecompressZippedFile(entry, stream));
+            elems += VTree::Add(entry.file_name, DecompressFile(entry, stream));
         }
     }
     return elems;

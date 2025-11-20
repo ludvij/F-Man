@@ -5,8 +5,7 @@
 #include <ranges>
 #include <span>
 
-namespace Fman
-{
+namespace Fman {
 
 /**
  * @brief Interface of a serializable object
@@ -138,7 +137,7 @@ void DeserializeString(std::istream& strm, std::string& str);
  * @param data The raw data to serialize
  * @param sz The size of the raw data
  */
-inline constexpr void SerializeData(std::ostream& strm, const char* data, size_t sz);
+inline void SerializeData(std::ostream& strm, const char* data, size_t sz);
 
 /**
  * @brief Deserializes any raw data
@@ -146,7 +145,7 @@ inline constexpr void SerializeData(std::ostream& strm, const char* data, size_t
  * @param data The raw data to deserialize
  * @param sz The size of the raw data
  */
-inline constexpr void DeserializeData(std::istream& strm, char* data, size_t sz);
+inline void DeserializeData(std::istream& strm, char* data, size_t sz);
 
 template <typename T>
 void SerializeStatic(std::ostream& strm, const T& t)
@@ -222,12 +221,12 @@ void DeserializeDynamicRangeStoresStatic(std::istream& strm, R& range)
     }
 }
 
-inline constexpr void SerializeData(std::ostream& strm, const char* data, const size_t sz)
+inline void SerializeData(std::ostream& strm, const char* data, const size_t sz)
 {
     strm.write(data, static_cast<std::streamsize>(sz));
 }
 
-inline constexpr void DeserializeData(std::istream& strm, char* data, const size_t sz)
+inline void DeserializeData(std::istream& strm, char* data, const size_t sz)
 {
     strm.read(data, static_cast<std::streamsize>(sz));
 }

@@ -2,7 +2,7 @@
 
 #include "FileManager/FileManager.hpp"
 #include "FileManager/Serializable.hpp"
-#include "FileManager/util/CompressionStreams.hpp"
+#include "FileManager/compression/CompressionStreams.hpp"
 
 #include <cstddef>
 #include <ios>
@@ -14,8 +14,7 @@
 namespace fs = std::filesystem;
 namespace ranges = std::ranges;
 
-namespace Fman
-{
+namespace Fman {
 _detail_::Context context; // NOLINT
 
 using Compression::CompressionOstream;
@@ -269,8 +268,7 @@ std::filesystem::path GetFromCurrent(const std::filesystem::path& path)
     return GetCurrent() / path;
 }
 
-namespace Resources
-{
+namespace Resources {
 std::shared_ptr<std::istream> Push(const std::string_view path)
 {
 #ifndef FMAN_EMBED_RESOURCES

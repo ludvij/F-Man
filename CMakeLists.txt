@@ -42,24 +42,24 @@ add_library(${PROJECT_NAME} STATIC)
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/internal/pch.hpp)
 
 set(SOURCES
-	include/FileManager/Serializable.hpp
 	include/FileManager/FileManager.hpp
-	
-	src/internal/FileManager_internal.hpp
-	src/internal/FileManager_internal.cpp
-	
-	src/internal/pch.hpp
-	src/FileManager.cpp
-	src/Serializable.cpp
+	    src/FileManager.cpp
+	include/FileManager/Serializable.hpp
+	    src/Serializable.cpp
 
-	include/FileManager/util/CompressionStreams.hpp
-	src/util/CompressionStreams.cpp
+	include/FileManager/compression/CompressionStreams.hpp
+	                src/compression/CompressionStreams.cpp
 
-	include/FileManager/util/zip.hpp
-	src/util/zip.cpp
+	include/FileManager/compression/archive/zip.hpp
+	                src/compression/archive/zip.cpp
 
 	include/FileManager/vfs/Vfs.hpp
-	src/vfs/Vfs.cpp
+	                src/vfs/Vfs.cpp
+
+	src/internal/FileManager_internal.hpp
+	src/internal/FileManager_internal.cpp
+
+	src/internal/pch.hpp
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_PREFERRED_SEPARATOR="${FMAN_PREFERRED_SEPARATOR}")
 target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_EMBED_RESOURCES)

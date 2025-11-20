@@ -6,7 +6,7 @@
 #include <array>
 #include <random>
 
-#include "FileManager/util/CompressionStreams.hpp"
+#include "FileManager/compression/CompressionStreams.hpp"
 
 using namespace Fman::Compression;
 
@@ -109,7 +109,7 @@ TEST_CASE("Serialization -- Simple", "[Fman][serial]")
     Fman::SetRootToKnownPath("PWD");
     Fman::PushFolder("Fman Tests");
     SimpleSerialization s1{1, 2, 3.0, 4};
-    SimpleSerialization s2{22, 1223341, 3123131.2323, 41234123131231231};
+    SimpleSerialization s2{22, 1'223'341, 3123131.2323, 41'234'123'131'231'231};
 
     SECTION("Serialize")
     {
@@ -131,9 +131,9 @@ TEST_CASE("Serialization -- Simple", "[Fman][serial]")
         Fman::Deserialize(&s2);
 
         REQUIRE(s2.data_int_1 == 22);
-        REQUIRE(s2.data_int_2 == 1223341);
+        REQUIRE(s2.data_int_2 == 1'223'341);
         REQUIRE(s2.data_double == 3123131.2323);
-        REQUIRE(s2.data_size == 41234123131231231);
+        REQUIRE(s2.data_size == 41'234'123'131'231'231);
     }
 
     SECTION("Serialize compression")
@@ -156,9 +156,9 @@ TEST_CASE("Serialization -- Simple", "[Fman][serial]")
         Fman::DeserializeDecompress(&s2);
 
         REQUIRE(s2.data_int_1 == 22);
-        REQUIRE(s2.data_int_2 == 1223341);
+        REQUIRE(s2.data_int_2 == 1'223'341);
         REQUIRE(s2.data_double == 3123131.2323);
-        REQUIRE(s2.data_size == 41234123131231231);
+        REQUIRE(s2.data_size == 41'234'123'131'231'231);
     }
     Fman::PopFolder();
 }
@@ -168,7 +168,7 @@ TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
     Fman::SetRootToKnownPath("PWD");
     Fman::PushFolder("Fman Tests");
 
-    std::mt19937 mt(2051920); // NOLINT
+    std::mt19937 mt(2'051'920); // NOLINT
     std::uniform_int_distribution<uint8_t> dist;
     BigSerializable beeg;
     beeg.block_1.resize(CHUNK_SIZE);
@@ -241,7 +241,7 @@ TEST_CASE("Serialization - Bigger than block size", "[Fman][serial]")
 {
     Fman::SetRootToKnownPath("PWD");
     Fman::PushFolder("Fman Tests");
-    std::mt19937 mt(2051920); // NOLINT
+    std::mt19937 mt(2'051'920); // NOLINT
     std::uniform_int_distribution<uint8_t> dist;
     SECTION("Serialize")
     {

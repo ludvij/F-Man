@@ -1,6 +1,6 @@
 // #include "internal/pch.hpp"
 
-#include "FileManager/util/CompressionStreams.hpp"
+#include "FileManager/compression/CompressionStreams.hpp"
 
 #include <memory>
 #include <zlib.h>
@@ -250,7 +250,11 @@ std::streamsize DecompressionStreambuf::xsgetn(CharT* s, std::streamsize count)
     {
         if (showmanyc() == 0)
         {
-            underflow();
+
+            if (TraitsT::eq_int_type(underflow(), TraitsT::eof()) && showmanyc() == 0)
+            {
+                return read;
+            }
         }
         const auto avail = showmanyc();
         const std::streamsize to_copy = avail < (count - read) ? avail : (count - read);
