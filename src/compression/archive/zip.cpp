@@ -294,7 +294,7 @@ static DataDescriptor read_data_descriptor(std::istream& stream)
     return dd;
 }
 
-constexpr static size_t find_eocd_size_from_zip(std::istream& stream)
+static size_t find_eocd_size_from_zip(std::istream& stream)
 {
     // find a signature 0x06054b50
     // advance 16 Bytes to get "offset" to start of central directory (from begginig of file)

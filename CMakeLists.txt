@@ -30,10 +30,13 @@ FetchContent_Declare(
 	GIT_TAG        2.2.5
 	EXCLUDE_FROM_ALL
 )
-
-add_compile_options(-Wno-type-limits)
-FetchContent_MakeAvailable(zlib_ng)
-add_compile_options(-Wtype-limits)
+if(MSVC)
+	FetchContent_MakeAvailable(zlib_ng)
+else()
+	add_compile_options(-Wno-type-limits)
+	FetchContent_MakeAvailable(zlib_ng)
+	add_compile_options(-Wtype-limits)
+endif()
 
 
 
