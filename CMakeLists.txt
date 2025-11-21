@@ -30,16 +30,19 @@ FetchContent_Declare(
 	GIT_TAG        2.2.5
 	EXCLUDE_FROM_ALL
 )
-
-add_compile_options(-Wno-type-limits)
-FetchContent_MakeAvailable(zlib_ng)
-add_compile_options(-Wtype-limits)
+if(MSVC)
+	FetchContent_MakeAvailable(zlib_ng)
+else()
+	add_compile_options(-Wno-type-limits)
+	FetchContent_MakeAvailable(zlib_ng)
+	add_compile_options(-Wtype-limits)
+endif()
 
 
 
 add_library(${PROJECT_NAME} STATIC)
 
-target_precompile_headers(${PROJECT_NAME} PRIVATE src/internal/pch.hpp)
+target_precompile_headers(${PROJECT_NAME} PRIVATE src/pch.hpp)
 
 set(SOURCES
 	include/FileManager/FileManager.hpp
@@ -47,32 +50,30 @@ set(SOURCES
 	include/FileManager/Serializable.hpp
 	    src/Serializable.cpp
 
-	include/FileManager/compression/CompressionStreams.hpp
-	                src/compression/CompressionStreams.cpp
+	include/FileManager/comp/Options.hpp
+	include/FileManager/comp/deflate_stream.hpp
+	                src/comp/deflate_stream.cpp
+	include/FileManager/comp/inflate_stream.hpp
+	                src/comp/inflate_stream.cpp
 
-	include/FileManager/compression/archive/zip.hpp
-	                src/compression/archive/zip.cpp
+	include/FileManager/comp/Archive.hpp
+	include/FileManager/comp/archive/zip.hpp
+	                src/comp/archive/zip.cpp
+	include/FileManager/comp/archive/rezip.hpp
+	                src/comp/archive/rezip.cpp
 
 	include/FileManager/vfs/Vfs.hpp
 	                src/vfs/Vfs.cpp
 
-	src/internal/FileManager_internal.hpp
-	src/internal/FileManager_internal.cpp
+	src/FileManager_internal.hpp
+	src/FileManager_internal.cpp
 
-	src/internal/pch.hpp
+	src/pch.hpp
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_PREFERRED_SEPARATOR="${FMAN_PREFERRED_SEPARATOR}")
-target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_EMBED_RESOURCES)
 
 if(FMAN_DO_CRC32)
 	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_DO_CRC_32)
-endif()
-
-if(FMAN_EMBED_RESOURCES)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_EMBED_RESOURCES)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_RESOURCES_PATH)
-else()
-	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_RESOURCES_PATH="${FMAN_RESOURCES_PATH}")
 endif()
 
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
@@ -88,19 +89,67 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if(generator_config MATCHES "DEBUG")
-	target_compile_definitions(${PROJECT_NAME} PRIVATE FILEMANAGER_DEBUG)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_DEBUG)
 elseif(generator_config MATCHES "RELEASE")
-	target_compile_definitions(${PROJECT_NAME} PRIVATE FILEMANAGER_RELEASE)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_RELEASE)
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES Linux)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE FILEMANAGER_PLATFORM_LINUX)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_PLATFORM_LINUX)
 elseif(CMAKE_SYSTEM_NAME MATCHES Windows)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE FILEMANAGER_PLATFORM_WINDOWS)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_PLATFORM_WINDOWS)
 else()
 	message(SEND_ERROR "platform ${CMAKE_SYSTEM_NAME} is not supported")
 endif()
 
+if(FMAN_EMBED_RESOURCES)
+	add_executable(embed_resources)
+	target_sources(embed_resources PRIVATE 
+		src/comp/deflate_stream.cpp
+		src/comp/inflate_stream.cpp
+		src/comp/archive/rezip.cpp
+		src/scripts/embed_resources.cpp
+		src/pch.hpp
+	)
+
+	file(GLOB_RECURSE resource_files ${CMAKE_SOURCE_DIR}/${FMAN_RESOURCES_PATH}/*)
+
+	target_precompile_headers(embed_resources PRIVATE src/pch.hpp)
+
+	target_include_directories(embed_resources
+		PUBLIC  ${CMAKE_CURRENT_LIST_DIR}/include
+		PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src
+	)
+
+	target_link_libraries(embed_resources
+		PRIVATE ludutils
+		PRIVATE zlibstatic
+	)
+
+	set(FMAN_GENERATED_RESOURCE generated_resources.cpp)
+
+	add_custom_command(OUTPUT ${FMAN_GENERATED_RESOURCE}
+		DEPENDS ${resource_files} 
+		COMMAND 
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/embed_resources 
+			${FMAN_RESOURCES_PATH} 
+			${CMAKE_CURRENT_BINARY_DIR}/${FMAN_GENERATED_RESOURCE}
+			RESOURCES_BINDUMP
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	)
+	add_custom_target(generated_files
+		DEPENDS ${FMAN_GENERATED_RESOURCE}
+	)
+
+	add_dependencies(generated_files embed_resources)
+	add_dependencies(${PROJECT_NAME} generated_files)
+
+	target_sources(${PROJECT_NAME} PRIVATE ${FMAN_GENERATED_RESOURCE})
+	target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_EMBED_RESOURCES)
+	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_RESOURCES_PATH="")
+else()
+	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_RESOURCES_PATH="${FMAN_RESOURCES_PATH}")
+endif()
 
 if (FMAN_TESTS)
 

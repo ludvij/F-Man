@@ -21,7 +21,7 @@ BraceWrapping:
 
 PointerAlignment: Left
 
-AlignAfterOpenBracket: true
+AlignAfterOpenBracket: BlockIndent
 # BreakBeforeCloseBracketBracedList: true
 # BreakBeforeCloseBracketFunction: true
 BreakBeforeTemplateCloser: true

@@ -1,18 +1,6 @@
 #include "FileManager/vfs/Vfs.hpp"
 #include "FileManager/FileManager.hpp"
-#include "FileManager/compression/archive/zip.hpp"
-#include "ludutils/lud_mem_stream.hpp"
-
-#include <cstddef>
-#include <filesystem>
-#include <fstream>
-#include <ios>
-#include <istream>
-#include <ludutils/lud_parse.hpp>
-#include <memory>
-#include <ranges>
-#include <utility>
-#include <variant>
+#include "FileManager/comp/Archive.hpp"
 
 namespace Fman {
 
@@ -30,7 +18,7 @@ size_t VTree::LoadFrom(const fs::path& path)
         return false;
     }
     Fman::PushFolder(fs::absolute(path));
-    auto paths = Fman::Traverse(Fman::FULL);
+    auto paths = Fman::Traverse({.depth = Fman::TRAVERSAL_FULL});
     Fman::PopFolder();
     size_t elems = 0;
     for (const auto& elem : paths)
@@ -58,10 +46,9 @@ size_t VTree::LoadFrom(const fs::path& path)
     return elems;
 }
 
-size_t VTree::LoadZip(std::istream& stream)
+size_t VTree::LoadArchive(const comp::Archive& archive)
 {
-    using namespace Fman::Compression;
-    auto directory = GetDirectory(stream);
+    auto directory = archive.GetDirectory();
     size_t elems = 0;
 
     for (const auto& entry : directory)
@@ -73,7 +60,7 @@ size_t VTree::LoadZip(std::istream& stream)
         }
         else
         {
-            elems += VTree::Add(entry.file_name, DecompressFile(entry, stream));
+            elems += VTree::Add(entry.file_name, archive.Peek(entry));
         }
     }
     return elems;
