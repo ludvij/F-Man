@@ -7,7 +7,7 @@
 namespace fs = std::filesystem;
 namespace ranges = std::ranges;
 
-namespace Fman {
+namespace varf {
 _detail_::Context context; // NOLINT
 
 using comp::deflate_ostream;
@@ -59,6 +59,10 @@ void SetRootToKnownPath(const std::string& name)
 
 bool PushFolder(const fs::path& name, bool create /*= true*/)
 {
+    if (name.empty())
+    {
+        return true;
+    }
     // folders can not end on period
     // TODO: validate pathname
     if (create)
@@ -242,23 +246,28 @@ std::filesystem::path GetFromCurrent(const std::filesystem::path& path)
     return GetCurrent() / path;
 }
 
-namespace Resources {
+namespace rcs {
 std::shared_ptr<std::istream> Get(const std::string_view path)
 {
-#ifdef FMAN_EMBED_RESOURCES
+#ifdef VARF_EMBED_RESOURCES
+
     auto file = context.resources.Get(path);
     Lud::check::that(file != nullptr, "Resource was not found");
+
 #else
-    Lud::check::that(Fman::PushFolder(Fman::GetRoot(), false), "Resources folder was not found");
-    auto file = Fman::PushFile(path, mode::read);
-    Fman::PopFolder();
+
+    Lud::check::that(varf::PushFolder(varf::GetRoot(), false), "Resources folder was not found");
+    auto file = varf::PushFile(path, mode::read);
+    varf::PopFolder();
 
     Lud::check::that(file != nullptr, "Resource was not found");
     Lud::check::that(file->is_open(), "Could not open file");
+
 #endif
+
     return file;
 }
 
-} // namespace Resources
+} // namespace rcs
 
-} // namespace Fman
+} // namespace varf

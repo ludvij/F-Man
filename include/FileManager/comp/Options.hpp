@@ -1,6 +1,6 @@
-#ifndef FILE_MANAGER_COMPRESSION_OPTIONS_HEADER
-#define FILE_MANAGER_COMPRESSION_OPTIONS_HEADER
-namespace Fman::comp {
+#ifndef VARF_COMPRESSION_OPTIONS_HEADER
+#define VARF_COMPRESSION_OPTIONS_HEADER
+namespace varf::comp {
 
 constexpr static auto CHUNK_SIZE = 16384;
 
@@ -34,5 +34,5 @@ struct CompressionOptions
     CompressionStrategy strategy = CompressionStrategy::DEFAULT;
     // int memLevel; // UNUSED
 };
-} // namespace Fman::comp
-#endif //! FILE_MANAGER_COMPRESSION_OPTIONS_HEADER
+} // namespace varf::comp
+#endif //! VARF_COMPRESSION_OPTIONS_HEADER

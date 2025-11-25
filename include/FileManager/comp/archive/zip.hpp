@@ -1,5 +1,5 @@
-#ifndef FILE_MANAGER_ZIP_HEADER
-#define FILE_MANAGER_ZIP_HEADER
+#ifndef VARF_ZIP_HEADER
+#define VARF_ZIP_HEADER
 
 /**
  * ZIP64 not supported right now
@@ -17,7 +17,7 @@
 
 #include "FileManager/comp/Archive.hpp"
 
-namespace Fman::comp {
+namespace varf::comp {
 /**
  * @brief Very WIP zip file archive, hardly works
  *
@@ -82,6 +82,6 @@ private:
     Impl* p_impl;
 };
 
-} // namespace Fman::comp
+} // namespace varf::comp
 
-#endif // !FILE_MANAGER_ZIP_HEADER
+#endif // !VARF_ZIP_HEADER

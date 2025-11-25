@@ -1,5 +1,5 @@
-#ifndef FILE_MANAGER_ARCHIVE_HEADER
-#define FILE_MANAGER_ARCHIVE_HEADER
+#ifndef VARF_ARCHIVE_HEADER
+#define VARF_ARCHIVE_HEADER
 
 /**
  * ZIP64 not supported right now
@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace Fman::comp {
+namespace varf::comp {
 
 struct ArchiveEntry
 {
@@ -74,6 +74,6 @@ public:
     virtual std::vector<ArchiveEntry> GetDirectory() const = 0;
 };
 
-} // namespace Fman::comp
+} // namespace varf::comp
 
-#endif // !FILE_MANAGER_ARCHIVE_HEADER
+#endif // !VARF_ARCHIVE_HEADER

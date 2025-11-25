@@ -1,8 +1,8 @@
-#ifndef FILE_MANAGER_INFLATE_STREAM_HEADER
-#define FILE_MANAGER_INFLATE_STREAM_HEADER
+#ifndef VARF_INFLATE_STREAM_HEADER
+#define VARF_INFLATE_STREAM_HEADER
 #include "Options.hpp"
 
-namespace Fman::comp {
+namespace varf::comp {
 
 class inflate_streambuf : public std::streambuf
 {
@@ -67,5 +67,5 @@ public:
 private:
     inflate_streambuf m_buffer;
 };
-} // namespace Fman::comp
-#endif //! FILE_MANAGER_INFLATE_STREAM_HEADER
+} // namespace varf::comp
+#endif //! VARF_INFLATE_STREAM_HEADER

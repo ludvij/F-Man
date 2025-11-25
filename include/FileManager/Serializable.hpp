@@ -1,11 +1,11 @@
-#ifndef FILE_MANAGER_SERIALIZABLE_HEADER
-#define FILE_MANAGER_SERIALIZABLE_HEADER
+#ifndef VARF_SERIALIZABLE_HEADER
+#define VARF_SERIALIZABLE_HEADER
 
 #include <iostream>
 #include <ranges>
 #include <span>
 
-namespace Fman {
+namespace varf {
 
 /**
  * @brief Interface of a serializable object
@@ -231,6 +231,6 @@ inline void DeserializeData(std::istream& strm, char* data, const size_t sz)
     strm.read(data, static_cast<std::streamsize>(sz));
 }
 
-} // namespace Fman
+} // namespace varf
 
 #endif

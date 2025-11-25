@@ -1,14 +1,13 @@
 #include "FileManager/FileManager.hpp"
 #include "FileManager/vfs/Vfs.hpp"
-#include "catch2/catch_test_macros.hpp"
 #include <array>
 #include <catch2/catch_all.hpp>
 #include <string>
 #include <vector>
 
-TEST_CASE("VFS - Add", "[Fman][vfs]")
+TEST_CASE("VFS - Add", "[varf][vfs]")
 {
-    auto vfs = Fman::VTree::Create();
+    auto vfs = varf::VTree::Create();
     SECTION("Add empty")
     {
         REQUIRE(vfs.Add("this/is/a/test"));
@@ -51,7 +50,7 @@ TEST_CASE("VFS - Add", "[Fman][vfs]")
 
         auto file = vfs.Get("this/is/a/test");
 
-        REQUIRE(Fman::Slurp<std::string>(*file) == expected);
+        REQUIRE(varf::Slurp<std::string>(*file) == expected);
     }
 
     SECTION("Add moves")
@@ -65,13 +64,13 @@ TEST_CASE("VFS - Add", "[Fman][vfs]")
 
         auto file = vfs.Get("this/is/a/test");
 
-        REQUIRE(Fman::Slurp<std::string>(*file) == expected);
+        REQUIRE(varf::Slurp<std::string>(*file) == expected);
     }
 }
 
-TEST_CASE("VFS - Contains", "[Fman][vfs]")
+TEST_CASE("VFS - Contains", "[varf][vfs]")
 {
-    auto vfs = Fman::VTree::Create();
+    auto vfs = varf::VTree::Create();
     SECTION("Empty contains")
     {
         vfs.Add("this/is/a/test");
@@ -91,9 +90,9 @@ TEST_CASE("VFS - Contains", "[Fman][vfs]")
     }
 }
 
-TEST_CASE("VFS - Remove", "[Fman][vfs]")
+TEST_CASE("VFS - Remove", "[varf][vfs]")
 {
-    auto vfs = Fman::VTree::Create();
+    auto vfs = varf::VTree::Create();
     SECTION("Remove empty")
     {
         vfs.Add("this/is/a/test");

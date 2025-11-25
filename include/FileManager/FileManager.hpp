@@ -1,5 +1,5 @@
-#ifndef FILE_MANAGER_HEADER
-#define FILE_MANAGER_HEADER
+#ifndef VARF_HEADER
+#define VARF_HEADER
 
 #include <concepts>
 #include <cstddef>
@@ -15,7 +15,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Fman {
+namespace varf {
 
 namespace mode {
 
@@ -40,9 +40,17 @@ constexpr uint8_t all = 0xFF;
  *
  */
 constexpr int TRAVERSAL_FULL = -1;
+constexpr int POP_FULL = -1;
 
 using OpenMode = int;
 using TraverseMode = uint8_t;
+
+struct TraverseOptions
+{
+    int depth = TRAVERSAL_FULL;
+    TraverseMode mode = traverse::all;
+    std::initializer_list<std::string_view> filters = {};
+};
 
 template <typename T>
 concept GrowableContiguosRange = requires(T range) {
@@ -130,23 +138,15 @@ void PopFolder(int amount = 1);
 [[nodiscard]]
 std::shared_ptr<std::fstream> PushFile(const std::filesystem::path& name, OpenMode mode = mode::write | mode::append);
 
-struct TraverseOptions
-{
-    int depth = TRAVERSAL_FULL;
-    TraverseMode mode = traverse::all;
-    std::initializer_list<std::string_view> filters = {};
-};
 /**
  * @brief Traverses current directory and retrieves all files up to given depth
  *
- * @param depth the depth of the search
- * @param trav_mode the type of traverse Fman::traverse::all by default
- *  - Fman::traverse::files for only files
- *  - Fman::traverse::folders for only folders
- *  - Fman::traverse::files | Fman::Traverse::folders for files and folders
- *  - Fman::traverse::all for all
- * @param filters file extensions, if empty filtering is off, if not empty will only return
- *  files with extensions in filers
+ * @param options options of the traversal
+ *                depth is the amount of subdirectories to traverse
+ *                    set to TRAVERSAL_FULL to traverse until exhaustion
+ *                mode is the traversal mode, can be files, folders or either
+ *                filters only applies when mode contains files
+ *                    only returns files that match the extension filter
  *
  * @return std::vector<std::filesystem::path>  containing all traversables up to specified depth
  */
@@ -193,7 +193,7 @@ Rng Slurp(const std::filesystem::path& path)
     return Slurp<Rng>(*file);
 }
 
-namespace Resources {
+namespace rcs {
 /**
  * @brief Obtains a stream to a resourece
  *
@@ -214,12 +214,12 @@ template <GrowableContiguosRange Rng = std::string>
 [[nodiscard]]
 Rng Slurp(const std::string_view path)
 {
-    auto file = Resources::Get(path);
+    auto file = rcs::Get(path);
 
-    return Fman::Slurp<Rng>(*file);
+    return varf::Slurp<Rng>(*file);
 }
 
-} // namespace Resources
+} // namespace rcs
 
-} // namespace Fman
+} // namespace varf
 #endif

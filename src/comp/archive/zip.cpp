@@ -13,7 +13,7 @@
 #define WRITE_BINARY_PTR(stream, ptr, sz) stream.write(reinterpret_cast<const char*>(ptr), (sz))
 #define WRITE_BINARY(stream, var) WRITE_BINARY_PTR((stream), &(var), sizeof(var))
 
-namespace Fman::comp {
+namespace varf::comp {
 
 namespace {
 namespace signatures_NS {
@@ -644,4 +644,4 @@ void ZipArchive::Write(std::ostream& stream) const
     write_end_of_central_directory_record(stream, eocd);
 }
 
-} // namespace Fman::comp
+} // namespace varf::comp

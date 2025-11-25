@@ -1,5 +1,5 @@
-#ifndef FILE_MANAGER_REZIP_HEADER
-#define FILE_MANAGER_REZIP_HEADER
+#ifndef VARF_REZIP_HEADER
+#define VARF_REZIP_HEADER
 
 /**
  * ZIP64 not supported right now
@@ -17,7 +17,7 @@
 
 #include "FileManager/comp/Archive.hpp"
 
-namespace Fman::comp {
+namespace varf::comp {
 
 /**
  * @brief A Rezip archive is an slimmed down version of a zip archive
@@ -160,6 +160,6 @@ private:
     Impl* p_impl;
 };
 
-} // namespace Fman::comp
+} // namespace varf::comp
 
-#endif // !FILE_MANAGER_Rezip_HEADER
+#endif // !VARF_Rezip_HEADER

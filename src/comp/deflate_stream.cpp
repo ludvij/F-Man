@@ -4,7 +4,7 @@
 
 #include <zlib.h>
 
-namespace Fman::comp {
+namespace varf::comp {
 
 // shoule probably move this somewhere so it's not duplicated
 auto static constexpr translate_options(CompressionOptions options)
@@ -214,4 +214,4 @@ deflate_ostream::deflate_ostream(std::ostream& ostream, CompressionOptions optio
 {
 }
 
-} // namespace Fman::comp
+} // namespace varf::comp

@@ -14,7 +14,7 @@ EXTERNAL_LINKAGE unsigned int TEST_ZIP_len;
 TEST_CASE("Unzip memory", "[vfs][unzip]")
 {
     Lud::memory_istream<uint8_t> stream({TEST_ZIP, TEST_ZIP_len});
-    Fman::Compression::ZipArchive archive(stream);
+    varf::Compression::ZipArchive archive(stream);
     auto files = archive.GetDirectory();
     SECTION("Correct folder structure")
     {

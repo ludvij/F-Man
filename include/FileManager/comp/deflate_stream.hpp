@@ -1,12 +1,12 @@
-#ifndef FILE_MANAGER_DEFLATE_STREAM_HEADER
-#define FILE_MANAGER_DEFLATE_STREAM_HEADER
+#ifndef VARF_DEFLATE_STREAM_HEADER
+#define VARF_DEFLATE_STREAM_HEADER
 
 #include <iostream>
 #include <streambuf>
 
 #include "Options.hpp"
 
-namespace Fman::comp {
+namespace varf::comp {
 
 class deflate_streambuf : public std::streambuf
 {
@@ -77,6 +77,6 @@ private:
     deflate_streambuf m_buffer;
 };
 
-} // namespace Fman::comp
+} // namespace varf::comp
 
-#endif //! FILE_MANAGER_DEFLATE_STREAM_HEADER
+#endif //! VARF_DEFLATE_STREAM_HEADER

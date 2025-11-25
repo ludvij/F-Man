@@ -4,7 +4,7 @@
 
 #include <zlib.h>
 
-namespace Fman::comp {
+namespace varf::comp {
 
 auto static constexpr translate_options(CompressionOptions options)
 {
@@ -200,4 +200,4 @@ inflate_istream::inflate_istream(std::istream& istream, CompressionOptions optio
     , m_buffer(istream, options)
 {
 }
-} // namespace Fman::comp
+} // namespace varf::comp

@@ -53,7 +53,7 @@ int main(int argc, char** argv)
     const auto output_file = argc > 2 ? argv[2] : "generated_resources.cpp";
     const auto var_name = argc > 3 ? argv[3] : "RESOURCES_BINDUMP";
 
-    Fman::comp::RezipArchive archive;
+    varf::comp::RezipArchive archive;
 
     for (const auto& file : traverse(resources_path))
     {

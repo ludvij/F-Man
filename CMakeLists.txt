@@ -1,18 +1,18 @@
 cmake_minimum_required(VERSION 3.31)
 
-project(Fman)
+project(varf)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(FMAN_TESTS "Enable tests project" OFF)
-option(FMAN_DO_CRC32 "Check crc32 on unzip" ON)
-option(FMAN_EMBED_RESOURCES "Embed resources as a zip file in source" OFF)
+option(VARF_TESTS "Enable tests project" OFF)
+option(VARF_DO_CRC32 "Check crc32 on unzip" ON)
+option(VARF_EMBED_RESOURCES "Embed resources as a zip file in source" OFF)
 
-set(FMAN_PREFERRED_SEPARATOR "/")
-set(FMAN_RESOURCES_PATH "resources/")
+set(VARF_PREFERRED_SEPARATOR "/")
+set(VARF_RESOURCES_PATH "resources/")
 
 SET(ZLIB_USE_STATIC_LIBS ON)
 SET(ZLIB_BUILD_EXAMPLES OFF)
@@ -70,10 +70,10 @@ set(SOURCES
 
 	src/pch.hpp
 )
-target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_PREFERRED_SEPARATOR="${FMAN_PREFERRED_SEPARATOR}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE VARF_PREFERRED_SEPARATOR="${VARF_PREFERRED_SEPARATOR}")
 
-if(FMAN_DO_CRC32)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_DO_CRC_32)
+if(VARF_DO_CRC32)
+	target_compile_definitions(${PROJECT_NAME} PUBLIC VARF_DO_CRC_32)
 endif()
 
 target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
@@ -89,20 +89,20 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if(generator_config MATCHES "DEBUG")
-	target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_DEBUG)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE VARF_DEBUG)
 elseif(generator_config MATCHES "RELEASE")
-	target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_RELEASE)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE VARF_RELEASE)
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES Linux)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_PLATFORM_LINUX)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE VARF_PLATFORM_LINUX)
 elseif(CMAKE_SYSTEM_NAME MATCHES Windows)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_PLATFORM_WINDOWS)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE VARF_PLATFORM_WINDOWS)
 else()
 	message(SEND_ERROR "platform ${CMAKE_SYSTEM_NAME} is not supported")
 endif()
 
-if(FMAN_EMBED_RESOURCES)
+if(VARF_EMBED_RESOURCES)
 	add_executable(embed_resources)
 	target_sources(embed_resources PRIVATE 
 		src/comp/deflate_stream.cpp
@@ -112,7 +112,7 @@ if(FMAN_EMBED_RESOURCES)
 		src/pch.hpp
 	)
 
-	file(GLOB_RECURSE resource_files ${CMAKE_SOURCE_DIR}/${FMAN_RESOURCES_PATH}/*)
+	file(GLOB_RECURSE resource_files ${CMAKE_SOURCE_DIR}/${VARF_RESOURCES_PATH}/*)
 
 	target_precompile_headers(embed_resources PRIVATE src/pch.hpp)
 
@@ -126,32 +126,32 @@ if(FMAN_EMBED_RESOURCES)
 		PRIVATE zlibstatic
 	)
 
-	set(FMAN_GENERATED_RESOURCE generated_resources.cpp)
+	set(VARF_GENERATED_RESOURCE generated_resources.cpp)
 
-	add_custom_command(OUTPUT ${FMAN_GENERATED_RESOURCE}
+	add_custom_command(OUTPUT ${VARF_GENERATED_RESOURCE}
 		DEPENDS ${resource_files} 
 		COMMAND 
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/embed_resources 
-			${FMAN_RESOURCES_PATH} 
-			${CMAKE_CURRENT_BINARY_DIR}/${FMAN_GENERATED_RESOURCE}
+			${VARF_RESOURCES_PATH} 
+			${CMAKE_CURRENT_BINARY_DIR}/${VARF_GENERATED_RESOURCE}
 			RESOURCES_BINDUMP
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	)
 	add_custom_target(generated_files
-		DEPENDS ${FMAN_GENERATED_RESOURCE}
+		DEPENDS ${VARF_GENERATED_RESOURCE}
 	)
 
 	add_dependencies(generated_files embed_resources)
 	add_dependencies(${PROJECT_NAME} generated_files)
 
-	target_sources(${PROJECT_NAME} PRIVATE ${FMAN_GENERATED_RESOURCE})
-	target_compile_definitions(${PROJECT_NAME} PRIVATE FMAN_EMBED_RESOURCES)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_RESOURCES_PATH="")
+	target_sources(${PROJECT_NAME} PRIVATE ${VARF_GENERATED_RESOURCE})
+	target_compile_definitions(${PROJECT_NAME} PRIVATE VARF_EMBED_RESOURCES)
+	target_compile_definitions(${PROJECT_NAME} PUBLIC VARF_RESOURCES_PATH="")
 else()
-	target_compile_definitions(${PROJECT_NAME} PUBLIC FMAN_RESOURCES_PATH="${FMAN_RESOURCES_PATH}")
+	target_compile_definitions(${PROJECT_NAME} PUBLIC VARF_RESOURCES_PATH="${VARF_RESOURCES_PATH}")
 endif()
 
-if (FMAN_TESTS)
+if (VARF_TESTS)
 
 	FetchContent_Declare(
 		Catch2
@@ -164,16 +164,16 @@ if (FMAN_TESTS)
 
 	set(fman_test_dir ${CMAKE_CURRENT_LIST_DIR}/tests)
 
-	add_executable(FMAN_TESTS)
-	target_sources(FMAN_TESTS PRIVATE
+	add_executable(VARF_TESTS)
+	target_sources(VARF_TESTS PRIVATE
 		${fman_test_dir}/test_serialization.cpp
 		${fman_test_dir}/test_vfs.cpp
 		${fman_test_dir}/test_unzip.cpp
 		${fman_test_dir}/test_zip_file.cpp
 	)
 
-	target_link_libraries(FMAN_TESTS
-		PRIVATE Fman
+	target_link_libraries(VARF_TESTS
+		PRIVATE varf
 		PRIVATE Catch2::Catch2WithMain
 		PRIVATE ludutils
 		PRIVATE zlibstatic
@@ -182,7 +182,7 @@ if (FMAN_TESTS)
 	list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 	include(CTest)
 	include(Catch)
-	catch_discover_tests(FMAN_TESTS)
+	catch_discover_tests(VARF_TESTS)
 
 endif()
 

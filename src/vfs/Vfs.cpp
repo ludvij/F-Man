@@ -2,7 +2,7 @@
 #include "FileManager/FileManager.hpp"
 #include "FileManager/comp/Archive.hpp"
 
-namespace Fman {
+namespace varf {
 
 namespace fs = std::filesystem;
 
@@ -11,15 +11,12 @@ VTree VTree::Create()
     return {};
 }
 
-size_t VTree::LoadFrom(const fs::path& path)
+size_t VTree::Load(const fs::path& path)
 {
-    if (path.empty())
-    {
-        return false;
-    }
-    Fman::PushFolder(fs::absolute(path));
-    auto paths = Fman::Traverse({.depth = Fman::TRAVERSAL_FULL});
-    Fman::PopFolder();
+    Lud::check::that(varf::PushFolder(path), "path not found");
+    auto paths = varf::Traverse({.depth = varf::TRAVERSAL_FULL});
+    varf::PopFolder();
+
     size_t elems = 0;
     for (const auto& elem : paths)
     {
@@ -54,7 +51,7 @@ size_t VTree::LoadArchive(const comp::Archive& archive)
     for (const auto& entry : directory)
     {
         // just a folder
-        if (entry.file_name.ends_with(FMAN_PREFERRED_SEPARATOR))
+        if (entry.file_name.ends_with(VARF_PREFERRED_SEPARATOR))
         {
             elems += VTree::Add(entry.file_name);
         }
@@ -72,7 +69,7 @@ bool VTree::Add(const std::string_view path)
     {
         return false;
     }
-    const auto parts = Lud::Split(Lud::ToLower(path), FMAN_PREFERRED_SEPARATOR);
+    const auto parts = Lud::Split(Lud::ToLower(path), VARF_PREFERRED_SEPARATOR);
     Node* last = &m_root;
     for (const auto& part : parts | std::views::take(parts.size() - 1))
     {
@@ -96,7 +93,7 @@ bool VTree::Add(const std::string_view path, std::vector<uint8_t>&& data)
     {
         return false;
     }
-    const auto parts = Lud::Split(Lud::ToLower(path), FMAN_PREFERRED_SEPARATOR);
+    const auto parts = Lud::Split(Lud::ToLower(path), VARF_PREFERRED_SEPARATOR);
     Node* last = &m_root;
     for (const auto& part : parts | std::views::take(parts.size() - 1))
     {
@@ -120,7 +117,7 @@ bool VTree::Contains(const std::string_view path) const
     {
         return false;
     }
-    const std::vector<std::string> parts = Lud::Split(path, FMAN_PREFERRED_SEPARATOR);
+    const std::vector<std::string> parts = Lud::Split(path, VARF_PREFERRED_SEPARATOR);
     const Node* last = &m_root;
     for (const auto& part : parts)
     {
@@ -143,7 +140,7 @@ bool VTree::Remove(const std::string_view path)
     {
         return false;
     }
-    const std::vector<std::string> parts = Lud::Split(path, FMAN_PREFERRED_SEPARATOR);
+    const std::vector<std::string> parts = Lud::Split(path, VARF_PREFERRED_SEPARATOR);
 
     Node* last = &m_root;
     for (const auto& part : parts | std::views::take(parts.size() - 1))
@@ -168,7 +165,7 @@ std::shared_ptr<std::istream> VTree::Get(const std::string_view path)
     {
         return nullptr;
     }
-    const std::vector<std::string> parts = Lud::Split(path, FMAN_PREFERRED_SEPARATOR);
+    const std::vector<std::string> parts = Lud::Split(path, VARF_PREFERRED_SEPARATOR);
 
     Node* last = &m_root;
     for (const auto& part : parts | std::views::take(parts.size() - 1))
@@ -203,4 +200,4 @@ VTree::VFile::VFile(std::vector<uint8_t>&& vec_data)
 {
 }
 
-} // namespace Fman
+} // namespace varf

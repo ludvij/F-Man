@@ -1,11 +1,11 @@
-#ifndef FILE_MANAGER_INTERNAL_HEADER
-#define FILE_MANAGER_INTERNAL_HEADER
+#ifndef VARF_INTERNAL_HEADER
+#define VARF_INTERNAL_HEADER
 
-#ifdef FMAN_EMBED_RESOURCES
+#ifdef VARF_EMBED_RESOURCES
     #include "FileManager/vfs/Vfs.hpp"
 #endif
 
-namespace Fman::_detail_ {
+namespace varf::_detail_ {
 
 class Context
 {
@@ -29,12 +29,12 @@ public:
     // back is current
     std::deque<std::filesystem::path> folders;
 
-#ifdef FMAN_EMBED_RESOURCES
+#ifdef VARF_EMBED_RESOURCES
     VTree resources{VTree::Create()};
 #endif
 
     // std::mutex m_current_file_mutex;
 };
 
-} // namespace Fman::_detail_
+} // namespace varf::_detail_
 #endif

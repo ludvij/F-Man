@@ -7,9 +7,9 @@
 #include <array>
 #include <random>
 
-using namespace Fman::Compression;
+using namespace varf::Compression;
 
-struct SimpleSerialization : public Fman::ISerializable
+struct SimpleSerialization : public varf::ISerializable
 {
     int data_int_1;
     int data_int_2;
@@ -32,14 +32,14 @@ struct SimpleSerialization : public Fman::ISerializable
 
     void Serialize(std::ostream& stream) override
     {
-#define X(member, type) Fman::Serialize##type(stream, member);
+#define X(member, type) varf::Serialize##type(stream, member);
         CLASS_MEMBERS;
 #undef X
     }
 
     void Deserialize(std::istream& stream) override
     {
-#define X(member, type) Fman::Deserialize##type(stream, member);
+#define X(member, type) varf::Deserialize##type(stream, member);
         CLASS_MEMBERS;
 #undef X
     }
@@ -47,7 +47,7 @@ struct SimpleSerialization : public Fman::ISerializable
 #undef CLASS_MEMBERS
 };
 
-struct BigSerializable : public Fman::ISerializable
+struct BigSerializable : public varf::ISerializable
 {
     std::string begin{"BEGIN"};
     std::vector<uint8_t> block_1;
@@ -64,14 +64,14 @@ struct BigSerializable : public Fman::ISerializable
 
     void Serialize(std::ostream& stream) override
     {
-#define X(member, type) Fman::Serialize##type(stream, member);
+#define X(member, type) varf::Serialize##type(stream, member);
         CLASS_MEMBERS;
 #undef X
     }
 
     void Deserialize(std::istream& stream) override
     {
-#define X(member, type) Fman::Deserialize##type(stream, member);
+#define X(member, type) varf::Deserialize##type(stream, member);
         CLASS_MEMBERS;
 #undef X
     }
@@ -79,7 +79,7 @@ struct BigSerializable : public Fman::ISerializable
 #undef CLASS_MEMBERS
 };
 
-struct BiggerThanBlockSize : public Fman::ISerializable
+struct BiggerThanBlockSize : public varf::ISerializable
 {
     std::array<uint8_t, CHUNK_SIZE * 4UL> test;
 
@@ -88,14 +88,14 @@ struct BiggerThanBlockSize : public Fman::ISerializable
 
     void Serialize(std::ostream& stream) override
     {
-#define X(member, type) Fman::Serialize##type(stream, member);
+#define X(member, type) varf::Serialize##type(stream, member);
         CLASS_MEMBERS;
 #undef X
     }
 
     void Deserialize(std::istream& stream) override
     {
-#define X(member, type) Fman::Deserialize##type(stream, member);
+#define X(member, type) varf::Deserialize##type(stream, member);
         CLASS_MEMBERS;
 #undef X
     }
@@ -103,31 +103,31 @@ struct BiggerThanBlockSize : public Fman::ISerializable
 #undef CLASS_MEMBERS
 };
 
-TEST_CASE("Serialization -- Simple", "[Fman][serial]")
+TEST_CASE("Serialization -- Simple", "[varf][serial]")
 {
-    Fman::SetRootToKnownPath("PWD");
-    Fman::PushFolder("Fman Tests");
+    varf::SetRootToKnownPath("PWD");
+    varf::PushFolder("varf Tests");
     SimpleSerialization s1{1, 2, 3.0, 4};
     SimpleSerialization s2{22, 1'223'341, 3123131.2323, 41'234'123'131'231'231};
 
     SECTION("Serialize")
     {
-        Fman::SetSerializeFilename("uncompressed");
-        Fman::Serialize(&s1);
+        varf::SetSerializeFilename("uncompressed");
+        varf::Serialize(&s1);
         s1.data_int_1 = 23;
         s1.data_int_2 = 23;
         s1.data_double = 23;
         s1.data_size = 23;
-        Fman::Deserialize(&s1);
+        varf::Deserialize(&s1);
 
         REQUIRE(s1.data_int_1 == 1);
         REQUIRE(s1.data_int_2 == 2);
         REQUIRE(s1.data_double == 3.0);
         REQUIRE(s1.data_size == 4);
 
-        Fman::Serialize(&s2);
+        varf::Serialize(&s2);
         s2 = s1;
-        Fman::Deserialize(&s2);
+        varf::Deserialize(&s2);
 
         REQUIRE(s2.data_int_1 == 22);
         REQUIRE(s2.data_int_2 == 1'223'341);
@@ -137,35 +137,35 @@ TEST_CASE("Serialization -- Simple", "[Fman][serial]")
 
     SECTION("Serialize compression")
     {
-        Fman::SetSerializeFilename("compressed");
-        Fman::SerializeCompress(&s1);
+        varf::SetSerializeFilename("compressed");
+        varf::SerializeCompress(&s1);
         s1.data_int_1 = 23;
         s1.data_int_2 = 23;
         s1.data_double = 23;
         s1.data_size = 23;
-        Fman::DeserializeDecompress(&s1);
+        varf::DeserializeDecompress(&s1);
 
         REQUIRE(s1.data_int_1 == 1);
         REQUIRE(s1.data_int_2 == 2);
         REQUIRE(s1.data_double == 3.0);
         REQUIRE(s1.data_size == 4);
 
-        Fman::SerializeCompress(&s2);
+        varf::SerializeCompress(&s2);
         s2 = s1;
-        Fman::DeserializeDecompress(&s2);
+        varf::DeserializeDecompress(&s2);
 
         REQUIRE(s2.data_int_1 == 22);
         REQUIRE(s2.data_int_2 == 1'223'341);
         REQUIRE(s2.data_double == 3123131.2323);
         REQUIRE(s2.data_size == 41'234'123'131'231'231);
     }
-    Fman::PopFolder();
+    varf::PopFolder();
 }
 
-TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
+TEST_CASE("Serialization -- Multiple blocks", "[varf][serial]")
 {
-    Fman::SetRootToKnownPath("PWD");
-    Fman::PushFolder("Fman Tests");
+    varf::SetRootToKnownPath("PWD");
+    varf::PushFolder("varf Tests");
 
     std::mt19937 mt(2'051'920); // NOLINT
     std::uniform_int_distribution<uint8_t> dist;
@@ -189,9 +189,9 @@ TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
 
     SECTION("Serialize")
     {
-        Fman::SetSerializeFilename("uncompressed_complex");
+        varf::SetSerializeFilename("uncompressed_complex");
 
-        Fman::Serialize(&beeg);
+        varf::Serialize(&beeg);
 
         beeg.block_1.clear();
         beeg.block_2.clear();
@@ -201,7 +201,7 @@ TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
         REQUIRE(beeg.block_2 != expected.block_2);
         REQUIRE(beeg.block_3 != expected.block_3);
 
-        Fman::Deserialize(&beeg);
+        varf::Deserialize(&beeg);
 
         REQUIRE(beeg.block_1 == expected.block_1);
         REQUIRE(beeg.block_2 == expected.block_2);
@@ -210,9 +210,9 @@ TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
 
     SECTION("Serialize compress multiple blocks")
     {
-        Fman::SetSerializeFilename("compressed_complex");
+        varf::SetSerializeFilename("compressed_complex");
 
-        Fman::SerializeCompress(&beeg);
+        varf::SerializeCompress(&beeg);
 
         beeg.block_1.clear();
         beeg.block_2.clear();
@@ -222,7 +222,7 @@ TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
         REQUIRE(beeg.block_2 != expected.block_2);
         REQUIRE(beeg.block_3 != expected.block_3);
 
-        Fman::DeserializeDecompress(&beeg);
+        varf::DeserializeDecompress(&beeg);
 
         REQUIRE(beeg.block_1 == expected.block_1);
         REQUIRE(beeg.block_2 == expected.block_2);
@@ -233,13 +233,13 @@ TEST_CASE("Serialization -- Multiple blocks", "[Fman][serial]")
     beeg.block_2.clear();
     beeg.block_3.clear();
 
-    Fman::PopFolder();
+    varf::PopFolder();
 }
 
-TEST_CASE("Serialization - Bigger than block size", "[Fman][serial]")
+TEST_CASE("Serialization - Bigger than block size", "[varf][serial]")
 {
-    Fman::SetRootToKnownPath("PWD");
-    Fman::PushFolder("Fman Tests");
+    varf::SetRootToKnownPath("PWD");
+    varf::PushFolder("varf Tests");
     std::mt19937 mt(2'051'920); // NOLINT
     std::uniform_int_distribution<uint8_t> dist;
     SECTION("Serialize")
@@ -251,18 +251,18 @@ TEST_CASE("Serialization - Bigger than block size", "[Fman][serial]")
         {
             elem = dist(mt);
         }
-        Fman::SetSerializeFilename("compressed_bigger_block");
+        varf::SetSerializeFilename("compressed_bigger_block");
 
         expected = test;
-        Fman::SerializeCompress(&test);
+        varf::SerializeCompress(&test);
 
         std::fill_n(test.test.begin(), test.test.size(), 0);
 
         REQUIRE(expected.test != test.test);
 
-        Fman::DeserializeDecompress(&test);
+        varf::DeserializeDecompress(&test);
 
         REQUIRE(expected.test == test.test);
     }
-    Fman::PopFolder();
+    varf::PopFolder();
 }

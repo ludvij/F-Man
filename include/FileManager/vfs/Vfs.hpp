@@ -1,5 +1,5 @@
-#ifndef FILE_MANAGER_VFS_HEADER
-#define FILE_MANAGER_VFS_HEADER
+#ifndef VARF_VFS_HEADER
+#define VARF_VFS_HEADER
 
 #include "FileManager/comp/Archive.hpp"
 #include <concepts>
@@ -14,7 +14,7 @@
 #include <format>
 #include <variant>
 
-namespace Fman {
+namespace varf {
 
 template <typename R, typename V>
 concept range_of_char = requires(R r) {
@@ -105,7 +105,7 @@ public:
      * @param path The path to be included
      * @return size_t The number of files added
      */
-    size_t LoadFrom(const std::filesystem::path& path);
+    size_t Load(const std::filesystem::path& path = {});
 
 private:
     VTree() = default;
@@ -134,26 +134,26 @@ bool VTree::Add(const std::string_view path, const R& data)
     return Add(path, std::move(data_vector));
 }
 
-} // namespace Fman
+} // namespace varf
 
 template <>
-struct std::formatter<Fman::VTree>
+struct std::formatter<varf::VTree>
 {
-    auto format(const Fman::VTree& obj, std::format_context& ctx) const
+    auto format(const varf::VTree& obj, std::format_context& ctx) const
     {
-        const auto dfs_impl = [&ctx](const Fman::VTree::Node& node, size_t depth, auto& impl) -> void {
+        const auto dfs_impl = [&ctx](const varf::VTree::Node& node, size_t depth, auto& impl) -> void {
             std::string indentation(depth * 1, ' ');
             for (const auto& [path, elem] : node.children)
             {
-                if (std::holds_alternative<Fman::VTree::Node>(elem))
+                if (std::holds_alternative<varf::VTree::Node>(elem))
                 {
                     std::format_to(ctx.out(), "{}{}/\n", indentation, path);
-                    auto& next = std::get<Fman::VTree::Node>(elem);
+                    auto& next = std::get<varf::VTree::Node>(elem);
                     impl(next, depth + 1, impl);
                 }
                 else
                 {
-                    size_t size = std::get<Fman::VTree::VFile>(elem).data.size();
+                    size_t size = std::get<varf::VTree::VFile>(elem).data.size();
                     std::format_to(ctx.out(), "{}*{} [{}]\n", indentation, path, size);
                 }
             }
@@ -170,4 +170,4 @@ struct std::formatter<Fman::VTree>
         return ctx.begin();
     }
 };
-#endif // FILE_MANAGER_VFS_HEADER
+#endif // VARF_VFS_HEADER
