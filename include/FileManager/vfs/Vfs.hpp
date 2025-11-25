@@ -1,6 +1,7 @@
 #ifndef FILE_MANAGER_VFS_HEADER
 #define FILE_MANAGER_VFS_HEADER
 
+#include "FileManager/comp/Archive.hpp"
 #include <concepts>
 #include <cstdint>
 #include <filesystem>
@@ -13,8 +14,7 @@
 #include <format>
 #include <variant>
 
-namespace Fman
-{
+namespace Fman {
 
 template <typename R, typename V>
 concept range_of_char = requires(R r) {
@@ -97,7 +97,7 @@ public:
      * @param stream a stream that points to the zip file
      * @return size_t number of added files
      */
-    size_t LoadZip(std::istream& stream);
+    size_t LoadArchive(const comp::Archive& archive);
 
     /**
      * @brief Inserts all files contained in a path to the tree, does dfs to the path
@@ -141,8 +141,7 @@ struct std::formatter<Fman::VTree>
 {
     auto format(const Fman::VTree& obj, std::format_context& ctx) const
     {
-        const auto dfs_impl = [&ctx](const Fman::VTree::Node& node, size_t depth, auto& impl) -> void
-        {
+        const auto dfs_impl = [&ctx](const Fman::VTree::Node& node, size_t depth, auto& impl) -> void {
             std::string indentation(depth * 1, ' ');
             for (const auto& [path, elem] : node.children)
             {

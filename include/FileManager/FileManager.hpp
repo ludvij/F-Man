@@ -1,11 +1,16 @@
 #ifndef FILE_MANAGER_HEADER
 #define FILE_MANAGER_HEADER
 
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <initializer_list>
 #include <iostream>
 #include <ludutils/lud_assert.hpp>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -30,7 +35,11 @@ constexpr uint8_t all = 0xFF;
 
 } // namespace traverse
 
-constexpr int FULL = -1;
+/**
+ * @brief represents max depth for traversal
+ *
+ */
+constexpr int TRAVERSAL_FULL = -1;
 
 using OpenMode = int;
 using TraverseMode = uint8_t;
@@ -63,19 +72,16 @@ std::filesystem::path GetRoot();
  * @param path (optional) name of the new root
  *             if not set will set root to current
  *
- * @return true if folder was created
- * @return false if folder exists
+ * @throws std::runtiem_error if folder could not be created
  */
-bool SetRoot(const std::filesystem::path& path = {});
+void SetRoot(const std::filesystem::path& path = {});
 
 /**
  * @brief Set the root to a known path
  *
  * @param name the name of the knonw path
- * @return true If the root was set correctly
- * @return false If the root was not set correctly
  */
-bool SetRootToKnownPath(const std::string& name);
+void SetRootToKnownPath(const std::string& name);
 
 /**
  * @brief Pushes a new folder on top of current
@@ -106,17 +112,6 @@ std::filesystem::path GetFromCurrent(const std::filesystem::path& path);
 bool PushFolder(std::initializer_list<std::filesystem::path> names, bool create = true);
 
 /**
- * @brief Allocates and returns file name in current
- *        The user does not need to delete the allocated memory
- *        Dirty little hack for imgui
- *
- * @param name name of file
- *
- * @return cstring containing current_path/name
- */
-char* AllocateFileName(const char* name);
-
-/**
  * @brief goes back to previous folder
  *
  * @param amount the number of folders to go back
@@ -132,10 +127,16 @@ void PopFolder(int amount = 1);
  *
  * @return ptr to file stream of opened file if file is opened or std::nullopt in case of fail
  */
+[[nodiscard]]
 std::shared_ptr<std::fstream> PushFile(const std::filesystem::path& name, OpenMode mode = mode::write | mode::append);
 
-/** A
- * @fn Traverse
+struct TraverseOptions
+{
+    int depth = TRAVERSAL_FULL;
+    TraverseMode mode = traverse::all;
+    std::initializer_list<std::string_view> filters = {};
+};
+/**
  * @brief Traverses current directory and retrieves all files up to given depth
  *
  * @param depth the depth of the search
@@ -149,7 +150,8 @@ std::shared_ptr<std::fstream> PushFile(const std::filesystem::path& name, OpenMo
  *
  * @return std::vector<std::filesystem::path>  containing all traversables up to specified depth
  */
-std::vector<std::filesystem::path> Traverse(int depth = 1, TraverseMode trav_mode = traverse::all, std::initializer_list<std::string_view> filters = {});
+[[nodiscard]]
+std::vector<std::filesystem::path> Traverse(const TraverseOptions& options = {});
 
 /**
  * @brief returns whole file from current stream postion to end
@@ -159,6 +161,7 @@ std::vector<std::filesystem::path> Traverse(int depth = 1, TraverseMode trav_mod
  * @return std::string containg file
  */
 template <GrowableContiguosRange Rng = std::string>
+[[nodiscard]]
 Rng Slurp(std::istream& stream)
 {
     const std::streamsize current_pos = stream.tellg();
@@ -183,6 +186,7 @@ Rng Slurp(std::istream& stream)
  * @return string containing file
  */
 template <GrowableContiguosRange Rng = std::string>
+[[nodiscard]]
 Rng Slurp(const std::filesystem::path& path)
 {
     auto file = PushFile(path, mode::read | mode::end);
@@ -196,7 +200,8 @@ namespace Resources {
  * @param path The path of the resource
  * @return std::shared_ptr<std::istream> smart pointer containing file
  */
-std::shared_ptr<std::istream> Push(const std::string_view path);
+[[nodiscard]]
+std::shared_ptr<std::istream> Get(const std::string_view path);
 
 /**
  * @brief Obtains a resource as a string
@@ -206,9 +211,10 @@ std::shared_ptr<std::istream> Push(const std::string_view path);
  * @return std::string the resource as a string
  */
 template <GrowableContiguosRange Rng = std::string>
+[[nodiscard]]
 Rng Slurp(const std::string_view path)
 {
-    auto file = Resources::Push(path);
+    auto file = Resources::Get(path);
 
     return Fman::Slurp<Rng>(*file);
 }

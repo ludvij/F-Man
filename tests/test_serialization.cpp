@@ -2,11 +2,10 @@
 
 #include "FileManager/FileManager.hpp"
 #include "FileManager/Serializable.hpp"
+#include "FileManager/compression/Options.hpp"
 
 #include <array>
 #include <random>
-
-#include "FileManager/compression/CompressionStreams.hpp"
 
 using namespace Fman::Compression;
 

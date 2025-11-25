@@ -4,19 +4,13 @@
 #ifdef FMAN_EMBED_RESOURCES
     #include "FileManager/vfs/Vfs.hpp"
 #endif
-#include <deque>
-#include <filesystem>
-#include <unordered_map>
-#include <vector>
 
-namespace Fman::_detail_
-{
+namespace Fman::_detail_ {
 
 class Context
 {
 public:
     Context();
-    ~Context();
 
     Context(const Context& other) = delete;
     Context& operator=(const Context& other) = delete;
@@ -29,12 +23,11 @@ public:
 
     std::string serialize_filename = "srl.dat";
 
-    std::filesystem::path root;
-    std::filesystem::path current_folder;
-
     std::unordered_map<std::string, std::filesystem::path> known_paths;
+
+    // front is root
+    // back is current
     std::deque<std::filesystem::path> folders;
-    std::vector<char*> allocations;
 
 #ifdef FMAN_EMBED_RESOURCES
     VTree resources{VTree::Create()};
