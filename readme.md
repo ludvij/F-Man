@@ -1,4 +1,4 @@
-# VARF
+# libVARF
 Stands for Virtual Archive Resources Files.  
 An all-in-one c++ stream based library for managing directories, files, file archival and resource management.  
 
@@ -6,23 +6,27 @@ A multiplatform file utility library.
 
 ## Files and directories
 The file and directories part of this library is inspired by ImGuis syntax    
-You can change working directory with PushFolder, this will append to the current working directory, and can go back with PopFolder, you can't pop further than the current root, the root is usually the starting working directory (where the program is being executed)  
+You can change working directory with Push, this will append to the current working directory, and can go back with Pop, you can't pop further than the current root, the root is usually the starting working directory (where the program is being executed)  
 **Example 1: open file**
 ```c++
 // appends a folder to the current working directory
 // also modifies the current working directory
-if (varf::PushFolder("path"))
+if (varf::Push("path"))
 {
 	// returns an fstream to .../path/foo.txt in read mode
-	auto fstream = varf::PushFile("foo.txt", varf::mode::read);
+	// if file not found in read mode returns nullptr
+	auto fstream_ptr = varf::PushFile("foo.txt", varf::mode::read);
+	
+	// works similar
+	std::fstream stream("foo.txt", std::ios::in);
 	// returns to previous working directory
-	varf::PopFolder();
+	varf::Pop();
 }
 ```
 
 **Example 2: get all files in a path**
 ```c++
-if (varf::PushFolder("path"))
+if (varf::Push("path"))
 {
 	// returns all file paths in current path and all its
 	// subdirectories that are either jpg or png
@@ -32,7 +36,7 @@ if (varf::PushFolder("path"))
 		.filters = {".png", ".jpg"}
 	});
 
-	varf::PopFolder();
+	varf::Pop();
 }
 ```
 
@@ -44,16 +48,16 @@ if (varf::PushFolder("path"))
 // and in linux is set to ~
 varf::SetRootToKnownPath("APPDATA");
 
-if (varf::PushFolder("path"))
+if (varf::Push("path"))
 {
 	// ...
-	varf::PopFolder();
+	varf::Pop();
 }
 ```
 
 **Example 4: slurp file**
 ```c++
-if (varf::PushFolder("path"))
+if (varf::Push("path"))
 {
 	// slurp file as a string
 	std::sting data_str = varf::slurp("foo.txt");
@@ -65,7 +69,7 @@ if (varf::PushFolder("path"))
 	// slurp data from a stream current pos to eof
 	auto data_from_stream = varf::slurp(stream);
 
-	varf::PopFolder();
+	varf::Pop();
 }
 ```
 
@@ -106,51 +110,27 @@ for(const auto& file : files)
 varf::ZipArchive archive;
 
 // obtains a list of all the entries in the archive
-if (varf::PushFolder("some/path"))
+if (varf::Push("some/path"))
 {
 	auto stream = varf::PushFile("foo.txt", varf::mode::read);
 	// adds stream data to the archive as some/file
-	archive.Push(*stream, "idk/foo.txt");
+	archive.Push("idk/foo.txt", *stream);
 
-	varf::PopFolder();
+	varf::Pop();
 }
 
-if (varf::PushFolder("other/path"))
+if (varf::Push("other/path"))
 {
 	auto stream = varf::PushFile("bar.txt", varf::mode::write);
 	// adds stream data to the archive as some/file
 	archive.Write(*stream);
 
-	varf::PopFolder();
+	varf::Pop();
 }
 
 ```
 
 To use Rezip just use RezipArchive instead of ZipArchive, resources embedding uses Rezip.
-
-### Adendum
-In order to compress data, this library makes use of [zlib-ng](https://github.com/zlib-ng/zlib-ng), this library also provides utility compression functionality with the help of inflate_stream and deflate_stream.  
-**Example 1: deflate_stream**
-```c++
-std::ostream out_stream = ...;
-// creates a deflate stream that will write to out_stream
-{
-	// important to either scope this so sync is called or
-	// to manually call to sync
-	varf::comp::deflate_ostream comp_stream(out_stream);
-	// writes some data
-	comp_stream.write(...);
-}
-```
-
-**Example 2: inflate_stream**
-```c++
-std::istream in_stream = ...;
-// creates a deflate stream that will read from in_stream
-varf::comp::inflate_istream decomp_stream(out_stream);
-// reads some data
-decomp_stream.read(...);
-```
 
 ## Virtual File System
 This library contains a simple virtual file system, you can add files from an archive, directory, or add raw data as files, virtual files can be obtained or removed  
@@ -158,12 +138,11 @@ This library contains a simple virtual file system, you can add files from an ar
 ```c++
 // creates a virtual file system
 auto vfs = varf::vfs::Create();
-// adds all contents from a path
-if (varf::PushFolder({"some", "path"}))
+if (varf::Push("path"))
 {
 	// loads from current path
 	vfs.Load();
-	varf::PopFolder(varf::POP_FULL);
+	varf::Pop(varf::POP_FULL);
 }
 
 // removes foo.txt from the virtal file system

@@ -1,4 +1,4 @@
-#include "FileManager/compression/archive/zip.hpp"
+#include "FileManager/archive/zip.hpp"
 #include <catch2/catch_all.hpp>
 #include <ludutils/lud_mem_stream.hpp>
 
@@ -14,7 +14,7 @@ EXTERNAL_LINKAGE unsigned int TEST_ZIP_len;
 TEST_CASE("Unzip memory", "[vfs][unzip]")
 {
     Lud::memory_istream<uint8_t> stream({TEST_ZIP, TEST_ZIP_len});
-    varf::Compression::ZipArchive archive(stream);
+    varf::ZipArchive archive(stream);
     auto files = archive.GetDirectory();
     SECTION("Correct folder structure")
     {

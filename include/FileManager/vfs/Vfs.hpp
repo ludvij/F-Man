@@ -1,7 +1,7 @@
 #ifndef VARF_VFS_HEADER
 #define VARF_VFS_HEADER
 
-#include "FileManager/comp/Archive.hpp"
+#include "FileManager/Archive.hpp"
 #include <concepts>
 #include <cstdint>
 #include <filesystem>
@@ -52,6 +52,14 @@ public:
     bool Add(const std::string_view path);
 
     /**
+     * @brief Adds a file to the vfs
+     *
+     * @param path The path of the file
+     * @param stream The stream containing the file
+     */
+    bool Add(const std::string_view path, std::istream& stream);
+
+    /**
      * @brief Moves a file to the tree given a path
      *
      * @param path The path of the file
@@ -97,7 +105,7 @@ public:
      * @param stream a stream that points to the zip file
      * @return size_t number of added files
      */
-    size_t LoadArchive(const comp::Archive& archive);
+    size_t LoadArchive(const Archive& archive);
 
     /**
      * @brief Inserts all files contained in a path to the tree, does dfs to the path

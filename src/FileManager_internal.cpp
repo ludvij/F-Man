@@ -1,14 +1,13 @@
 // #include "pch.hpp"
 
 #include "FileManager_internal.hpp"
-#include "FileManager/comp/archive/rezip.hpp"
+#include "FileManager/archive/rezip.hpp"
 #ifdef FILEMANAGER_PLATFORM_WINDOWS
     #include <ShlObj.h>
 #endif
 
 #ifdef VARF_EMBED_RESOURCES
 
-    #include "ludutils/lud_mem_stream.hpp"
 extern unsigned char RESOURCES_BINDUMP[]; // NOLINT
 extern size_t RESOURCES_BINDUMP_len;
 
@@ -53,7 +52,7 @@ varf::_detail_::Context::Context()
 #ifdef VARF_EMBED_RESOURCES
 
     Lud::memory_istream stream({RESOURCES_BINDUMP, RESOURCES_BINDUMP_len});
-    comp::RezipArchive archive(stream);
+    RezipArchive archive(stream);
     resources.LoadArchive(archive);
 #endif
 }

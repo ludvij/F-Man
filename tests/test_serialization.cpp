@@ -2,12 +2,13 @@
 
 #include "FileManager/FileManager.hpp"
 #include "FileManager/Serializable.hpp"
-#include "FileManager/compression/Options.hpp"
 
 #include <array>
 #include <random>
 
-using namespace varf::Compression;
+#include <comp_streams/CompStreams.hpp>
+
+using namespace varf;
 
 struct SimpleSerialization : public varf::ISerializable
 {
@@ -81,7 +82,7 @@ struct BigSerializable : public varf::ISerializable
 
 struct BiggerThanBlockSize : public varf::ISerializable
 {
-    std::array<uint8_t, CHUNK_SIZE * 4UL> test;
+    std::array<uint8_t, Lud::CHUNK_SIZE * 4UL> test;
 
 #define CLASS_MEMBERS \
     X(test, ArrayStoresStatic<uint8_t>)
@@ -105,8 +106,7 @@ struct BiggerThanBlockSize : public varf::ISerializable
 
 TEST_CASE("Serialization -- Simple", "[varf][serial]")
 {
-    varf::SetRootToKnownPath("PWD");
-    varf::PushFolder("varf Tests");
+    varf::Push("varf_tests/serialization");
     SimpleSerialization s1{1, 2, 3.0, 4};
     SimpleSerialization s2{22, 1'223'341, 3123131.2323, 41'234'123'131'231'231};
 
@@ -159,20 +159,20 @@ TEST_CASE("Serialization -- Simple", "[varf][serial]")
         REQUIRE(s2.data_double == 3123131.2323);
         REQUIRE(s2.data_size == 41'234'123'131'231'231);
     }
-    varf::PopFolder();
+    varf::Reset();
+    std::filesystem::remove_all(varf::GetCurrent() / "varf_tests");
 }
 
 TEST_CASE("Serialization -- Multiple blocks", "[varf][serial]")
 {
-    varf::SetRootToKnownPath("PWD");
-    varf::PushFolder("varf Tests");
+    varf::Push("varf_tests/serialization");
 
     std::mt19937 mt(2'051'920); // NOLINT
     std::uniform_int_distribution<uint8_t> dist;
     BigSerializable beeg;
-    beeg.block_1.resize(CHUNK_SIZE);
-    beeg.block_2.resize(CHUNK_SIZE);
-    beeg.block_3.resize(CHUNK_SIZE);
+    beeg.block_1.resize(Lud::CHUNK_SIZE);
+    beeg.block_2.resize(Lud::CHUNK_SIZE);
+    beeg.block_3.resize(Lud::CHUNK_SIZE);
     for (auto& elem : beeg.block_1)
     {
         elem = dist(mt);
@@ -229,17 +229,14 @@ TEST_CASE("Serialization -- Multiple blocks", "[varf][serial]")
         REQUIRE(beeg.block_3 == expected.block_3);
     }
 
-    beeg.block_1.clear();
-    beeg.block_2.clear();
-    beeg.block_3.clear();
-
-    varf::PopFolder();
+    varf::Reset();
+    std::filesystem::remove_all(varf::GetCurrent() / "varf_tests");
 }
 
 TEST_CASE("Serialization - Bigger than block size", "[varf][serial]")
 {
-    varf::SetRootToKnownPath("PWD");
-    varf::PushFolder("varf Tests");
+    varf::Push("varf_tests/serialization");
+
     std::mt19937 mt(2'051'920); // NOLINT
     std::uniform_int_distribution<uint8_t> dist;
     SECTION("Serialize")
@@ -264,5 +261,6 @@ TEST_CASE("Serialization - Bigger than block size", "[varf][serial]")
 
         REQUIRE(expected.test == test.test);
     }
-    varf::PopFolder();
+    varf::Reset();
+    std::filesystem::remove_all(varf::GetCurrent() / "varf_tests");
 }

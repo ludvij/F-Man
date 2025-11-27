@@ -1,6 +1,6 @@
 #include "FileManager/vfs/Vfs.hpp"
+#include "FileManager/Archive.hpp"
 #include "FileManager/FileManager.hpp"
-#include "FileManager/comp/Archive.hpp"
 
 namespace varf {
 
@@ -13,9 +13,9 @@ VTree VTree::Create()
 
 size_t VTree::Load(const fs::path& path)
 {
-    Lud::check::that(varf::PushFolder(path), "path not found");
+    Lud::check::that(varf::Push(path), "path not found");
     auto paths = varf::Traverse({.depth = varf::TRAVERSAL_FULL});
-    varf::PopFolder();
+    varf::Pop();
 
     size_t elems = 0;
     for (const auto& elem : paths)
@@ -43,7 +43,7 @@ size_t VTree::Load(const fs::path& path)
     return elems;
 }
 
-size_t VTree::LoadArchive(const comp::Archive& archive)
+size_t VTree::LoadArchive(const Archive& archive)
 {
     auto directory = archive.GetDirectory();
     size_t elems = 0;
@@ -107,6 +107,31 @@ bool VTree::Add(const std::string_view path, std::vector<uint8_t>&& data)
     {
         return false;
     }
+    last->children.emplace(parts.back(), std::move(data));
+    return true;
+}
+
+bool VTree::Add(const std::string_view path, std::istream& stream)
+{
+    if (path.empty())
+    {
+        return false;
+    }
+    const auto parts = Lud::Split(Lud::ToLower(path), VARF_PREFERRED_SEPARATOR);
+    Node* last = &m_root;
+    for (const auto& part : parts | std::views::take(parts.size() - 1))
+    {
+        auto& variant = last->children[part];
+        if (last = std::get_if<Node>(&variant); last == nullptr)
+        {
+            return false;
+        }
+    }
+    if (last->children.contains(parts.back()))
+    {
+        return false;
+    }
+    auto data = varf::Slurp<std::vector<uint8_t>>(stream);
     last->children.emplace(parts.back(), std::move(data));
     return true;
 }

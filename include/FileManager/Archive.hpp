@@ -1,5 +1,5 @@
-#ifndef VARF_ZIP_HEADER
-#define VARF_ZIP_HEADER
+#ifndef VARF_ARCHIVE_HEADER
+#define VARF_ARCHIVE_HEADER
 
 /**
  * ZIP64 not supported right now
@@ -13,33 +13,31 @@
 #include <cstdint>
 #include <istream>
 #include <ostream>
+#include <string>
 #include <vector>
 
-#include "FileManager/comp/Archive.hpp"
+namespace varf {
 
-namespace varf::comp {
-/**
- * @brief Very WIP zip file archive, hardly works
- *
- */
-class ZipArchive : public Archive
+struct ArchiveEntry
+{
+    const std::string file_name;
+    const size_t index;
+    const uint32_t uncompressed_size;
+    const uint32_t compressed_size;
+};
+
+class Archive
 {
 public:
-    ZipArchive();
-    /**
-     * @brief Constructs an archive from a stream
-     *
-     * @param stream stream to archive data
-     */
-    ZipArchive(std::istream& stream);
-    ~ZipArchive() override;
+
+    virtual ~Archive() = default;
 
     /**
      * @brief Creates a zip file from the archive
      *
      * @param stream a stream to the file to be saved
      */
-    void Write(std::ostream& stream) const override;
+    virtual void Write(std::ostream& stream) const = 0;
 
     /**
      * @brief Adds data to the archive as a file
@@ -48,7 +46,7 @@ public:
      * @param name the name of the file
      * @throws std::runtime_error if the entry was not created
      */
-    void Push(std::istream& stream, const std::string_view name) override;
+    virtual void Push(const std::string_view name, std::istream& stream) = 0;
 
     /**
      * @brief Removes data from the archive in the form of decompressed data
@@ -56,7 +54,7 @@ public:
      * @param entry the entry to be popped
      * @return std::vector<uint8_t> Containing the data
      */
-    std::vector<uint8_t> Pop(const ArchiveEntry& entry) override;
+    virtual std::vector<uint8_t> Pop(const ArchiveEntry& entry) = 0;
 
     /**
      * @brief Obtains data from the archive without removal in the form of decompressed data
@@ -64,24 +62,18 @@ public:
      * @param entry the entry to be peeked
      * @return std::vector<uint8_t> Containing the data
      */
-    std::vector<uint8_t> Peek(const ArchiveEntry& entry) const override;
+    [[nodiscard]]
+    virtual std::vector<uint8_t> Peek(const ArchiveEntry& entry) const = 0;
 
     /**
      * @brief Obtains a vector containing a recollection of the archive contents
      *
      * @return std::vector<ArchiveDirectory>
      */
-    std::vector<ArchiveEntry> GetDirectory() const override;
-
-private:
-    void read(std::istream& stream);
-
-private:
-    struct Impl;
-
-    Impl* p_impl;
+    [[nodiscard]]
+    virtual std::vector<ArchiveEntry> GetDirectory() const = 0;
 };
 
-} // namespace varf::comp
+} // namespace varf
 
-#endif // !VARF_ZIP_HEADER
+#endif // !VARF_ARCHIVE_HEADER

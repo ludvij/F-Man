@@ -8,7 +8,7 @@
 #include <fstream>
 #include <initializer_list>
 #include <iostream>
-#include <ludutils/lud_assert.hpp>
+#include <limits>
 #include <memory>
 #include <ranges>
 #include <string>
@@ -40,7 +40,7 @@ constexpr uint8_t all = 0xFF;
  *
  */
 constexpr int TRAVERSAL_FULL = -1;
-constexpr int POP_FULL = -1;
+constexpr size_t POP_FULL = std::numeric_limits<size_t>::max();
 
 using OpenMode = int;
 using TraverseMode = uint8_t;
@@ -78,7 +78,13 @@ std::filesystem::path GetRoot();
  * @brief Set the Root object
  *
  * @param path (optional) name of the new root
- *             if not set will set root to current
+ *             if empty will set root to current
+ *             same rules as @ref Push except path can be absolute
+ *
+ * @throws std::runtime_error if the path is not a valid path
+ * @throws std::filesystem::filesystem_error if path does not exist and creation fails
+ * @throws std::filesystem::filesystem_error if setting current working directory fails
+ *         if this error happens the varf context will be reset
  *
  * @throws std::runtiem_error if folder could not be created
  */
@@ -92,40 +98,49 @@ void SetRoot(const std::filesystem::path& path = {});
 void SetRootToKnownPath(const std::string& name);
 
 /**
+ * @brief resets varfs filemanager
+ *
+ */
+void Reset();
+
+/**
  * @brief Pushes a new folder on top of current
  *
  * @param name new folder name, will be appended to the current one
+ *             if multiple paths for/example it will be pushed as two
+ *             a valid pathname
+ *                 will not contain \?%*:|"<>,;=
+ *                 will not end in .
+ *                 will not be an absolute path
+ *                 and will not point to anything that is not a directory
+ *             if you push valid/error. even an exception will be thrown
+ *
  * @param create true if create folder if not exists
+
+ * @throws std::runtime_error if the path is not a valid path
+ * @throws std::filesystem::filesystem_error if you try to push("..") in root
+ * @throws std::filesystem::filesystem_error if creation fails on create == true
+ * @throws std::filesystem::filesystem_error if setting current working directory fails
+ *         if this error happens the varf context will be reset
  *
  * @return true if folder was entered
- * @return false if folder was not entered
+ *              or name was empty
+ * @return false if create = false and directory does not exist
  */
-bool PushFolder(const std::filesystem::path& name, bool create = true);
-
-/**
- * @brief Returns a path appended to the current path
- *
- * @param path The path to append
- * @return std::filesystem::path resulting path
- */
-std::filesystem::path GetFromCurrent(const std::filesystem::path& path);
-
-/**
- * @brief Pushes multiple folders
- * @param names list of folders
- * @param create true will create folder if it does not exists
- * @return true if all folders entered successfully
- * @return false if all folders were not entered
- */
-bool PushFolder(std::initializer_list<std::filesystem::path> names, bool create = true);
+bool Push(const std::filesystem::path& name, bool create = true);
 
 /**
  * @brief goes back to previous folder
  *
  * @param amount the number of folders to go back
- *               if < 0 then all folders will be popped
+ *               if POP_FULL then all folders will be popped
+ *
+ * @throws std::runtime_error if you try to pop while on root
+ * @throws std::runtime_error if amount > number of pushed directories
+ * @throws std::filesystem::filesystem_error if setting current working directory fails
+ *         if this error happens the varf context will be reset
  */
-void PopFolder(int amount = 1);
+void Pop(size_t amount = 1);
 
 /**
  * @brief Opens a file
@@ -133,10 +148,10 @@ void PopFolder(int amount = 1);
  * @param name name of the file to be created
  * @param mode open mode of file
  *
- * @return ptr to file stream of opened file if file is opened or std::nullopt in case of fail
+ * @return ptr to file stream of opened file if file is opened or nullptr in case of error
  */
 [[nodiscard]]
-std::shared_ptr<std::fstream> PushFile(const std::filesystem::path& name, OpenMode mode = mode::write | mode::append);
+std::shared_ptr<std::fstream> PushFile(const std::filesystem::path& name, OpenMode mode = mode::read);
 
 /**
  * @brief Traverses current directory and retrieves all files up to given depth
@@ -147,6 +162,8 @@ std::shared_ptr<std::fstream> PushFile(const std::filesystem::path& name, OpenMo
  *                mode is the traversal mode, can be files, folders or either
  *                filters only applies when mode contains files
  *                    only returns files that match the extension filter
+ *
+ * @throws std::runtime_error if options.depth == 0
  *
  * @return std::vector<std::filesystem::path>  containing all traversables up to specified depth
  */

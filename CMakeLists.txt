@@ -14,31 +14,6 @@ option(VARF_EMBED_RESOURCES "Embed resources as a zip file in source" OFF)
 set(VARF_PREFERRED_SEPARATOR "/")
 set(VARF_RESOURCES_PATH "resources/")
 
-SET(ZLIB_USE_STATIC_LIBS ON)
-SET(ZLIB_BUILD_EXAMPLES OFF)
-
-
-SET(ZLIB_COMPAT ON)
-SET(ZLIB_ENABLE_TESTS OFF)
-SET(WITH_GTEST OFF)
-SET(BUILD_SHARED_LIBS FALSE)
-
-include(FetchContent)
-FetchContent_Declare(
-	zlib_ng
-	GIT_REPOSITORY https://github.com/zlib-ng/zlib-ng.git
-	GIT_TAG        2.2.5
-	EXCLUDE_FROM_ALL
-)
-if(MSVC)
-	FetchContent_MakeAvailable(zlib_ng)
-else()
-	add_compile_options(-Wno-type-limits)
-	FetchContent_MakeAvailable(zlib_ng)
-	add_compile_options(-Wtype-limits)
-endif()
-
-
 
 add_library(${PROJECT_NAME} STATIC)
 
@@ -46,28 +21,19 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE src/pch.hpp)
 
 set(SOURCES
 	include/FileManager/FileManager.hpp
-	    src/FileManager.cpp
+	include/FileManager/Archive.hpp
 	include/FileManager/Serializable.hpp
-	    src/Serializable.cpp
-
-	include/FileManager/comp/Options.hpp
-	include/FileManager/comp/deflate_stream.hpp
-	                src/comp/deflate_stream.cpp
-	include/FileManager/comp/inflate_stream.hpp
-	                src/comp/inflate_stream.cpp
-
-	include/FileManager/comp/Archive.hpp
-	include/FileManager/comp/archive/zip.hpp
-	                src/comp/archive/zip.cpp
-	include/FileManager/comp/archive/rezip.hpp
-	                src/comp/archive/rezip.cpp
-
+	include/FileManager/archive/zip.hpp
+	include/FileManager/archive/rezip.hpp
 	include/FileManager/vfs/Vfs.hpp
-	                src/vfs/Vfs.cpp
-
+	
+	src/FileManager.cpp
+	src/Serializable.cpp
+	src/archive/zip.cpp
+	src/archive/rezip.cpp
+	src/vfs/Vfs.cpp
 	src/FileManager_internal.hpp
 	src/FileManager_internal.cpp
-
 	src/pch.hpp
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE VARF_PREFERRED_SEPARATOR="${VARF_PREFERRED_SEPARATOR}")
@@ -85,7 +51,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} 
 	PRIVATE ludutils
-	PRIVATE zlibstatic
+	PRIVATE compression_streams
 )
 
 if(generator_config MATCHES "DEBUG")
@@ -105,9 +71,7 @@ endif()
 if(VARF_EMBED_RESOURCES)
 	add_executable(embed_resources)
 	target_sources(embed_resources PRIVATE 
-		src/comp/deflate_stream.cpp
-		src/comp/inflate_stream.cpp
-		src/comp/archive/rezip.cpp
+		src/archive/rezip.cpp
 		src/scripts/embed_resources.cpp
 		src/pch.hpp
 	)
@@ -123,7 +87,7 @@ if(VARF_EMBED_RESOURCES)
 
 	target_link_libraries(embed_resources
 		PRIVATE ludutils
-		PRIVATE zlibstatic
+		PRIVATE compression_streams
 	)
 
 	set(VARF_GENERATED_RESOURCE generated_resources.cpp)
@@ -166,6 +130,7 @@ if (VARF_TESTS)
 
 	add_executable(VARF_TESTS)
 	target_sources(VARF_TESTS PRIVATE
+		${fman_test_dir}/test_filemanager.cpp
 		${fman_test_dir}/test_serialization.cpp
 		${fman_test_dir}/test_vfs.cpp
 		${fman_test_dir}/test_unzip.cpp
@@ -176,7 +141,7 @@ if (VARF_TESTS)
 		PRIVATE varf
 		PRIVATE Catch2::Catch2WithMain
 		PRIVATE ludutils
-		PRIVATE zlibstatic
+		PRIVATE compression_streams
 	)
 
 	list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)

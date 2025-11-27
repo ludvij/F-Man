@@ -15,9 +15,9 @@
 #include <ostream>
 #include <vector>
 
-#include "FileManager/comp/Archive.hpp"
+#include "FileManager/Archive.hpp"
 
-namespace varf::comp {
+namespace varf {
 
 /**
  * @brief A Rezip archive is an slimmed down version of a zip archive
@@ -63,7 +63,7 @@ namespace varf::comp {
  *            ╟──────┼─────────────────────────────────────────╢
  *            ║  8B  │ compressed size                         ║
  *            ╟──────┼─────────────────────────────────────────╢
- *            ║      │ comp method                      ║
+ *            ║      │ comp method                             ║
  *            ║  1B  │┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄║
  *            ║      │     8 for DEFLATE (-MAX_WBITS)          ║
  *            ║      │     0 for none                          ║
@@ -126,7 +126,7 @@ public:
      * @param name the name of the file
      * @throws std::runtime_error if the entry was not created
      */
-    void Push(std::istream& stream, const std::string_view name) override;
+    void Push(const std::string_view name, std::istream& stream) override;
 
     /**
      * @brief Removes data from the archive in the form of decompressed data
@@ -160,6 +160,6 @@ private:
     Impl* p_impl;
 };
 
-} // namespace varf::comp
+} // namespace varf
 
 #endif // !VARF_Rezip_HEADER

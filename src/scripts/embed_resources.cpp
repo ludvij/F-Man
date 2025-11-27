@@ -1,4 +1,4 @@
-#include "FileManager/comp/archive/rezip.hpp"
+#include "FileManager/archive/rezip.hpp"
 
 #include <ludutils/lud_mem_stream.hpp>
 
@@ -53,12 +53,12 @@ int main(int argc, char** argv)
     const auto output_file = argc > 2 ? argv[2] : "generated_resources.cpp";
     const auto var_name = argc > 3 ? argv[3] : "RESOURCES_BINDUMP";
 
-    varf::comp::RezipArchive archive;
+    varf::RezipArchive archive;
 
     for (const auto& file : traverse(resources_path))
     {
         std::ifstream stream(file, std::ios::binary);
-        archive.Push(stream, file.filename().string());
+        archive.Push(file.filename().string(), stream);
     }
 
     std::vector<uint8_t> data;

@@ -1,12 +1,6 @@
-#include "FileManager/comp/archive/rezip.hpp"
-#include "FileManager/comp/Options.hpp"
-#include "FileManager/comp/deflate_stream.hpp"
-#include "FileManager/comp/inflate_stream.hpp"
+#include "FileManager/archive/rezip.hpp"
 
-#include <ludutils/lud_assert.hpp>
-#include <ludutils/lud_mem_stream.hpp>
-
-#include <zlib.h>
+#include <comp_streams/CompStreams.hpp>
 
 #define READ_BINARY_PTR(stream, ptr, sz) stream.read(reinterpret_cast<char*>(ptr), (sz))
 #define READ_BINARY(stream, var) READ_BINARY_PTR((stream), &(var), sizeof(var))
@@ -14,7 +8,7 @@
 #define WRITE_BINARY_PTR(stream, ptr, sz) stream.write(reinterpret_cast<const char*>(ptr), (sz))
 #define WRITE_BINARY(stream, var) WRITE_BINARY_PTR((stream), &(var), sizeof(var))
 
-namespace varf::comp {
+namespace varf {
 namespace {
 
 namespace signatures_NS {
@@ -235,7 +229,7 @@ RezipArchive::~RezipArchive()
     delete p_impl;
 }
 
-void RezipArchive::Push(std::istream& stream, const std::string_view name)
+void RezipArchive::Push(const std::string_view name, std::istream& stream)
 {
     auto uncompressed_data = slurp(stream);
 
@@ -243,7 +237,8 @@ void RezipArchive::Push(std::istream& stream, const std::string_view name)
 
     auto& [lfh, file_name, compressed_data] = p_impl->file_entries.back();
 
-    uint32_t crc = crc32(0, uncompressed_data.data(), uncompressed_data.size());
+    // TODO: implement crc32
+    uint32_t crc = 0; // crc32(0, uncompressed_data.data(), uncompressed_data.size());
 
     if (!uncompressed_data.empty())
     {
@@ -253,7 +248,7 @@ void RezipArchive::Push(std::istream& stream, const std::string_view name)
         // scoped so sync is automatically called on destruction
         {
             Lud::vector_ostream vec_ostream(compressed_data);
-            deflate_ostream comp_ostream(vec_ostream, {.type = CompressionType::RAW});
+            Lud::deflate_ostream comp_ostream(vec_ostream, {.type = Lud::CompressionType::RAW});
 
             WRITE_BINARY_PTR(comp_ostream, uncompressed_data.data(), uncompressed_data.size());
         }
@@ -356,7 +351,7 @@ std::vector<uint8_t> RezipArchive::Peek(const ArchiveEntry& entry) const
     else
     {
         Lud::memory_istream<uint8_t> mem_stream(compressed_data);
-        inflate_istream inflate_stream(mem_stream, {.type = CompressionType::RAW});
+        Lud::inflate_istream inflate_stream(mem_stream, {.type = Lud::CompressionType::RAW});
 
         READ_BINARY_PTR(inflate_stream, uncompressed_data.data(), uncompressed_data.size());
     }
@@ -387,7 +382,7 @@ std::vector<uint8_t> RezipArchive::Pop(const ArchiveEntry& entry)
     else
     {
         Lud::memory_istream<uint8_t> mem_stream(compressed_data);
-        inflate_istream inflate_stream(mem_stream, {.type = CompressionType::RAW});
+        Lud::inflate_istream inflate_stream(mem_stream, {.type = Lud::CompressionType::RAW});
 
         READ_BINARY_PTR(inflate_stream, uncompressed_data.data(), uncompressed_data.size());
     }
@@ -428,4 +423,4 @@ void RezipArchive::read(std::istream& stream)
     }
 }
 
-} // namespace varf::comp
+} // namespace varf

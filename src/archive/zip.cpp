@@ -1,11 +1,6 @@
-#include "FileManager/comp/archive/zip.hpp"
-#include "FileManager/comp/deflate_stream.hpp"
-#include "FileManager/comp/inflate_stream.hpp"
+#include "FileManager/archive/zip.hpp"
 
-#include <ludutils/lud_assert.hpp>
-#include <ludutils/lud_mem_stream.hpp>
-
-#include <zlib.h>
+#include <comp_streams/CompStreams.hpp>
 
 #define READ_BINARY_PTR(stream, ptr, sz) stream.read(reinterpret_cast<char*>(ptr), (sz))
 #define READ_BINARY(stream, var) READ_BINARY_PTR((stream), &(var), sizeof(var))
@@ -13,7 +8,7 @@
 #define WRITE_BINARY_PTR(stream, ptr, sz) stream.write(reinterpret_cast<const char*>(ptr), (sz))
 #define WRITE_BINARY(stream, var) WRITE_BINARY_PTR((stream), &(var), sizeof(var))
 
-namespace varf::comp {
+namespace varf {
 
 namespace {
 namespace signatures_NS {
@@ -433,7 +428,7 @@ ZipArchive::~ZipArchive()
 
 // https://pkwaredownloads.blob.core.windows.net/pkware-general/Documentation/APPNOTE-6.3.9.TXT
 
-void ZipArchive::Push(std::istream& stream, const std::string_view name)
+void ZipArchive::Push(const std::string_view name, std::istream& stream)
 {
     auto uncompressed_data = slurp(stream);
 
@@ -441,7 +436,8 @@ void ZipArchive::Push(std::istream& stream, const std::string_view name)
 
     auto& [lfh, compressed_data] = p_impl->file_entries.back();
 
-    uint32_t crc = crc32(0, uncompressed_data.data(), uncompressed_data.size());
+    // TODO: implement crc32
+    uint32_t crc = 0;
     if (!uncompressed_data.empty())
     {
         // zlib recommends to set the buffer size to at least the uncompressed size
@@ -450,7 +446,7 @@ void ZipArchive::Push(std::istream& stream, const std::string_view name)
         // scoped so sync is automatically called on destruction
         {
             Lud::vector_ostream vec_ostream(compressed_data);
-            deflate_ostream comp_ostream(vec_ostream, {.type = CompressionType::RAW});
+            Lud::deflate_ostream comp_ostream(vec_ostream, {.type = Lud::CompressionType::RAW});
 
             WRITE_BINARY_PTR(comp_ostream, uncompressed_data.data(), uncompressed_data.size());
         }
@@ -499,7 +495,7 @@ std::vector<uint8_t> ZipArchive::Peek(const ArchiveEntry& entry) const
     else
     {
         Lud::memory_istream<uint8_t> mem_stream(compressed_data);
-        inflate_istream inflate_stream(mem_stream, {.type = CompressionType::RAW});
+        Lud::inflate_istream inflate_stream(mem_stream, {.type = Lud::CompressionType::RAW});
 
         READ_BINARY_PTR(inflate_stream, uncompressed_data.data(), uncompressed_data.size());
     }
@@ -549,7 +545,7 @@ std::vector<uint8_t> ZipArchive::Pop(const ArchiveEntry& entry)
     else
     {
         Lud::memory_istream<uint8_t> mem_stream(compressed_data);
-        inflate_istream inflate_stream(mem_stream, {.type = CompressionType::RAW});
+        Lud::inflate_istream inflate_stream(mem_stream, {.type = Lud::CompressionType::RAW});
 
         READ_BINARY_PTR(inflate_stream, uncompressed_data.data(), uncompressed_data.size());
     }
@@ -644,4 +640,4 @@ void ZipArchive::Write(std::ostream& stream) const
     write_end_of_central_directory_record(stream, eocd);
 }
 
-} // namespace varf::comp
+} // namespace varf
