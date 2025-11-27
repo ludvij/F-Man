@@ -1,4 +1,4 @@
-#include "FileManager/archive/rezip.hpp"
+#include "archive/rezip.hpp"
 
 #include <comp_streams/CompStreams.hpp>
 
@@ -290,8 +290,8 @@ std::vector<ArchiveEntry> RezipArchive::GetDirectory() const
         directory.emplace_back(
             entries[i].name,
             i,
-            entries[i].header.uncompressed_size,
-            entries[i].header.compressed_size
+            static_cast<uint32_t>(entries[i].header.uncompressed_size),
+            static_cast<uint32_t>(entries[i].header.compressed_size)
         );
     }
     return directory;
@@ -313,7 +313,7 @@ void RezipArchive::Write(std::ostream& stream) const
             entry.name,
             total_written,
             Signatures::CENTRAL_DIRECTORY_HEADER,
-            entry.name.size()
+            static_cast<uint32_t>(entry.name.size())
         );
 
         write_local_file_header(stream, entry.header);

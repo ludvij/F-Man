@@ -1,9 +1,10 @@
 // #include "pch.hpp"
 
 #include "FileManager_internal.hpp"
-#include "FileManager/archive/rezip.hpp"
-#ifdef FILEMANAGER_PLATFORM_WINDOWS
+#include "archive/rezip.hpp"
+#ifdef VARF_PLATFORM_WINDOWS
     #include <ShlObj.h>
+	#include <Windows.h>
 #endif
 
 #ifdef VARF_EMBED_RESOURCES
@@ -17,7 +18,7 @@ varf::_detail_::Context::Context()
 {
 #if defined(VARF_PLATFORM_WINDOWS)
     // I need to clean this
-    auto add_knonw_path = [&](const std::string& name, GUID id) {
+    const auto add_knonw_path = [&](const std::string&& name, GUID id) {
         PWSTR path;
 
         auto err = SHGetKnownFolderPath(id, KF_FLAG_CREATE, NULL, &path);

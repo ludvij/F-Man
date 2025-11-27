@@ -14,18 +14,27 @@ option(VARF_EMBED_RESOURCES "Embed resources as a zip file in source" OFF)
 set(VARF_PREFERRED_SEPARATOR "/")
 set(VARF_RESOURCES_PATH "resources/")
 
+include(FetchContent)
+FetchContent_Declare(
+	compression_streams
+	GIT_REPOSITORY https://github.com/ludvij/compression_streams
+	GIT_TAG        v1.0.0
+	EXCLUDE_FROM_ALL
+)
+FetchContent_MakeAvailable(compression_streams)
+
 
 add_library(${PROJECT_NAME} STATIC)
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/pch.hpp)
 
 set(SOURCES
-	include/FileManager/FileManager.hpp
-	include/FileManager/Archive.hpp
-	include/FileManager/Serializable.hpp
-	include/FileManager/archive/zip.hpp
-	include/FileManager/archive/rezip.hpp
-	include/FileManager/vfs/Vfs.hpp
+	include/varf/FileManager.hpp
+	include/varf/Archive.hpp
+	include/varf/Serializable.hpp
+	include/varf/archive/zip.hpp
+	include/varf/archive/rezip.hpp
+	include/varf/vfs/Vfs.hpp
 	
 	src/FileManager.cpp
 	src/Serializable.cpp
@@ -46,6 +55,7 @@ target_sources(${PROJECT_NAME} PRIVATE ${SOURCES})
 
 target_include_directories(${PROJECT_NAME}
 	PUBLIC  ${CMAKE_CURRENT_LIST_DIR}/include
+	PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include/varf
 	PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
@@ -126,15 +136,15 @@ if (VARF_TESTS)
 
 	FetchContent_MakeAvailable(Catch2)
 
-	set(fman_test_dir ${CMAKE_CURRENT_LIST_DIR}/tests)
+	set(varf_test_dir ${CMAKE_CURRENT_LIST_DIR}/tests)
 
 	add_executable(VARF_TESTS)
 	target_sources(VARF_TESTS PRIVATE
-		${fman_test_dir}/test_filemanager.cpp
-		${fman_test_dir}/test_serialization.cpp
-		${fman_test_dir}/test_vfs.cpp
-		${fman_test_dir}/test_unzip.cpp
-		${fman_test_dir}/test_zip_file.cpp
+		${varf_test_dir}/test_filemanager.cpp
+		${varf_test_dir}/test_serialization.cpp
+		${varf_test_dir}/test_vfs.cpp
+		${varf_test_dir}/test_unzip.cpp
+		${varf_test_dir}/test_zip_file.cpp
 	)
 
 	target_link_libraries(VARF_TESTS

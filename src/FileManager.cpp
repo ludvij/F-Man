@@ -1,8 +1,6 @@
-#include "FileManager/FileManager.hpp"
-#include "FileManager/Serializable.hpp"
+#include "FileManager.hpp"
+#include "Serializable.hpp"
 #include "FileManager_internal.hpp"
-#include "ludutils/lud_assert.hpp"
-#include "ludutils/lud_parse.hpp"
 
 #include <filesystem>
 
@@ -32,7 +30,7 @@ static void set_current_working_dir(const fs::path& path)
 
 static void validate_path(const fs::path& path)
 {
-    constexpr static std::string_view invalid = R"(\%*?:|"<>,;=)";
+    constexpr static std::string_view invalid = R"(%*?|"<>,;=)";
     const auto& str = path.string();
 
     Lud::check::is_false(Lud::ContainsAny(str, invalid), "path contains invalid characters");

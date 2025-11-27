@@ -2,7 +2,7 @@
 #define VARF_INTERNAL_HEADER
 
 #ifdef VARF_EMBED_RESOURCES
-    #include "FileManager/vfs/Vfs.hpp"
+    #include "vfs/Vfs.hpp"
 #endif
 
 namespace varf::_detail_ {

@@ -49,7 +49,7 @@ struct TraverseOptions
 {
     int depth = TRAVERSAL_FULL;
     TraverseMode mode = traverse::all;
-    std::initializer_list<std::string_view> filters = {};
+    std::vector<std::string_view> filters{};
 };
 
 template <typename T>

@@ -1,6 +1,6 @@
-#include "FileManager/vfs/Vfs.hpp"
-#include "FileManager/Archive.hpp"
-#include "FileManager/FileManager.hpp"
+#include "vfs/Vfs.hpp"
+#include "Archive.hpp"
+#include "FileManager.hpp"
 
 namespace varf {
 
