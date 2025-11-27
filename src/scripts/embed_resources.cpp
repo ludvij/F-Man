@@ -2,22 +2,24 @@
 
 #include <ludutils/lud_mem_stream.hpp>
 
+#include <cstdint>
+
 namespace fs = std::filesystem;
-std::vector<std::filesystem::path> traverse(const std::string_view path)
+static std::vector<std::filesystem::path> traverse(const std::string_view path)
 {
     std::vector<fs::path> result;
 
     std::deque<fs::directory_entry> iters;
 
     iters.emplace_back(path);
-
     while (!iters.empty())
     {
         fs::directory_iterator it{iters.front()};
         iters.pop_front();
         for (const auto& dir_entry : it)
         {
-            const auto rel = path / fs::relative(dir_entry, path);
+            fs::path rel = path / fs::relative(dir_entry, path);
+            rel.make_preferred();
             if (fs::is_directory(dir_entry))
             {
                 iters.push_back(dir_entry);
@@ -31,8 +33,9 @@ std::vector<std::filesystem::path> traverse(const std::string_view path)
     return result;
 }
 
-void hexdump(std::ostream& output, const std::span<uint8_t> data, uint row_size = 12)
+static void hexdump(std::ostream& output, const std::span<uint8_t> data, unsigned int row_size = 12)
 {
+
     for (size_t i = 0; i < data.size(); i++)
     {
         std::print(output, "0x{:0>2X}", data[i]);
@@ -54,11 +57,10 @@ int main(int argc, char** argv)
     const auto var_name = argc > 3 ? argv[3] : "RESOURCES_BINDUMP";
 
     varf::RezipArchive archive;
-
     for (const auto& file : traverse(resources_path))
     {
         std::ifstream stream(file, std::ios::binary);
-        archive.Push(file.filename().string(), stream);
+        archive.Push(file.string(), stream);
     }
 
     std::vector<uint8_t> data;

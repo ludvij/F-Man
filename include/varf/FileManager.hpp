@@ -218,7 +218,7 @@ namespace rcs {
  * @return std::shared_ptr<std::istream> smart pointer containing file
  */
 [[nodiscard]]
-std::shared_ptr<std::istream> Get(const std::string_view path);
+std::shared_ptr<std::istream> Get(const std::filesystem::path& path);
 
 /**
  * @brief Obtains a resource as a string
@@ -229,7 +229,7 @@ std::shared_ptr<std::istream> Get(const std::string_view path);
  */
 template <GrowableContiguosRange Rng = std::string>
 [[nodiscard]]
-Rng Slurp(const std::string_view path)
+Rng Slurp(const std::filesystem::path& path)
 {
     auto file = rcs::Get(path);
 

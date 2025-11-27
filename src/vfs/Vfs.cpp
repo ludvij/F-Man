@@ -69,7 +69,7 @@ bool VTree::Add(const std::string_view path)
     {
         return false;
     }
-    const auto parts = Lud::Split(Lud::ToLower(path), VARF_PREFERRED_SEPARATOR);
+    const auto parts = Lud::Split(path, VARF_PREFERRED_SEPARATOR);
     Node* last = &m_root;
     for (const auto& part : parts | std::views::take(parts.size() - 1))
     {
@@ -93,7 +93,7 @@ bool VTree::Add(const std::string_view path, std::vector<uint8_t>&& data)
     {
         return false;
     }
-    const auto parts = Lud::Split(Lud::ToLower(path), VARF_PREFERRED_SEPARATOR);
+    const auto parts = Lud::Split(path, VARF_PREFERRED_SEPARATOR);
     Node* last = &m_root;
     for (const auto& part : parts | std::views::take(parts.size() - 1))
     {

@@ -24,7 +24,7 @@ PointerAlignment: Left
 AlignAfterOpenBracket: BlockIndent
 # BreakBeforeCloseBracketBracedList: true
 # BreakBeforeCloseBracketFunction: true
-BreakBeforeTemplateCloser: true
+# BreakBeforeTemplateCloser: true
 AlignArrayOfStructures: Left
 
 # AlignConsecutiveAssignments: Consecutive

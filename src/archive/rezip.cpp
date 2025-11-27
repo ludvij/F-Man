@@ -392,7 +392,7 @@ std::vector<uint8_t> RezipArchive::Pop(const ArchiveEntry& entry)
 
 void RezipArchive::read(std::istream& stream)
 {
-    auto eocd_size = static_cast<std::streamoff>(get_end_of_central_directory_record_size());
+    constexpr auto eocd_size = static_cast<std::streamoff>(get_end_of_central_directory_record_size());
 
     stream.seekg(-eocd_size, std::ios::end);
 

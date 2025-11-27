@@ -45,7 +45,6 @@ set(SOURCES
 	src/FileManager_internal.cpp
 	src/pch.hpp
 )
-target_compile_definitions(${PROJECT_NAME} PRIVATE VARF_PREFERRED_SEPARATOR="${VARF_PREFERRED_SEPARATOR}")
 
 if(VARF_DO_CRC32)
 	target_compile_definitions(${PROJECT_NAME} PUBLIC VARF_DO_CRC_32)
@@ -72,8 +71,10 @@ endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES Linux)
 	target_compile_definitions(${PROJECT_NAME} PRIVATE VARF_PLATFORM_LINUX)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE VARF_PREFERRED_SEPARATOR="/")
 elseif(CMAKE_SYSTEM_NAME MATCHES Windows)
 	target_compile_definitions(${PROJECT_NAME} PRIVATE VARF_PLATFORM_WINDOWS)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE VARF_PREFERRED_SEPARATOR="\\\\")
 else()
 	message(SEND_ERROR "platform ${CMAKE_SYSTEM_NAME} is not supported")
 endif()
@@ -92,6 +93,7 @@ if(VARF_EMBED_RESOURCES)
 
 	target_include_directories(embed_resources
 		PUBLIC  ${CMAKE_CURRENT_LIST_DIR}/include
+		PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include/varf
 		PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src
 	)
 

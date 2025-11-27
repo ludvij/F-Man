@@ -84,6 +84,8 @@ fs::path GetRoot()
 
 void SetRoot(const fs::path& name)
 {
+	fs::path preferred = name;
+	preferred.make_preferred();
     if (name.empty())
     {
         context.folders.emplace_front(GetCurrent());
@@ -114,8 +116,11 @@ void Reset()
 
 bool Push(const fs::path& name, bool create /*= true*/)
 {
+	fs::path preferred = name;
+	preferred.make_preferred();
+
     const size_t sz = context.folders.size();
-    for (const auto& elem : name)
+    for (const auto& elem : preferred)
     {
         if (!internal_push(elem, create))
         {
@@ -253,11 +258,13 @@ void SetSerializeFilename(const std::string_view name)
 }
 
 namespace rcs {
-std::shared_ptr<std::istream> Get(const std::string_view path)
+std::shared_ptr<std::istream> Get(const std::filesystem::path& path)
 {
 #ifdef VARF_EMBED_RESOURCES
 
-    auto file = context.resources.Get(path);
+    fs::path preferred = path;
+    preferred.make_preferred();
+    auto file = context.resources.Get(preferred.make_preferred().string());
 
 #else
 
