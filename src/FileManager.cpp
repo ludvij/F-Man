@@ -1,6 +1,7 @@
 #include "FileManager.hpp"
-#include "Serializable.hpp"
 #include "FileManager_internal.hpp"
+#include "Serializable.hpp"
+
 
 #include <filesystem>
 
@@ -84,8 +85,8 @@ fs::path GetRoot()
 
 void SetRoot(const fs::path& name)
 {
-	fs::path preferred = name;
-	preferred.make_preferred();
+    fs::path preferred = name;
+    preferred.make_preferred();
     if (name.empty())
     {
         context.folders.emplace_front(GetCurrent());
@@ -116,8 +117,8 @@ void Reset()
 
 bool Push(const fs::path& name, bool create /*= true*/)
 {
-	fs::path preferred = name;
-	preferred.make_preferred();
+    fs::path preferred = name;
+    preferred.make_preferred();
 
     const size_t sz = context.folders.size();
     for (const auto& elem : preferred)
