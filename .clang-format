@@ -22,9 +22,9 @@ BraceWrapping:
 PointerAlignment: Left
 
 AlignAfterOpenBracket: BlockIndent
-# BreakBeforeCloseBracketBracedList: true
-# BreakBeforeCloseBracketFunction: true
-# BreakBeforeTemplateCloser: true
+BreakBeforeCloseBracketBracedList: true
+BreakBeforeCloseBracketFunction: true
+BreakBeforeTemplateCloser: true
 AlignArrayOfStructures: Left
 
 # AlignConsecutiveAssignments: Consecutive

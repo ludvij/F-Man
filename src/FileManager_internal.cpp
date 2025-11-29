@@ -4,7 +4,7 @@
 #include "archive/rezip.hpp"
 #ifdef VARF_PLATFORM_WINDOWS
     #include <ShlObj.h>
-	#include <Windows.h>
+    #include <Windows.h>
 #endif
 
 #ifdef VARF_EMBED_RESOURCES

@@ -2,7 +2,6 @@
 #include "FileManager_internal.hpp"
 #include "Serializable.hpp"
 
-
 #include <filesystem>
 
 #include <comp_streams/CompStreams.hpp>
